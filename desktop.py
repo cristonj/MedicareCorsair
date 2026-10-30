@@ -22,6 +22,14 @@ MUTED = '#52695d'
 GREEN = '#205b49'
 
 
+def clipboard_path(browser):
+    """Use a portable path so the clipboard does not contain the account name."""
+    suffix = '/manifest.json' if browser == 'Firefox' else ''
+    if sys.platform == 'darwin':
+        return f'~/Library/Application Support/MedicareCorsair/extension/{browser.lower()}{suffix}'
+    return f'%LOCALAPPDATA%\\MedicareCorsair\\extension\\{browser.lower()}' + ('\\manifest.json' if browser == 'Firefox' else '')
+
+
 def find_browser(browser):
     if sys.platform == 'darwin':
         names = {'Chrome': 'Google Chrome', 'Edge': 'Microsoft Edge', 'Firefox': 'Firefox'}
@@ -104,7 +112,7 @@ class Launcher:
                 config['background'] = {'scripts': ['background.js']}
                 manifest.write_text(json.dumps(config, indent=2), encoding='utf-8')
             self.root.clipboard_clear()
-            self.root.clipboard_append(str(target / 'manifest.json' if browser == 'Firefox' else target))
+            self.root.clipboard_append(clipboard_path(browser))
             self.root.update()
             address = {'Chrome':'chrome://extensions', 'Edge':'edge://extensions', 'Firefox':'about:debugging#/runtime/this-firefox'}[browser]
             subprocess.Popen([str(executable), address])
@@ -134,7 +142,7 @@ class Launcher:
     def copy_path(self):
         try:
             self.root.clipboard_clear()
-            self.root.clipboard_append(str(self.target / 'manifest.json' if self.browser == 'Firefox' else self.target))
+            self.root.clipboard_append(clipboard_path(self.browser))
             self.root.update()
             messagebox.showinfo('Copied', 'Folder path copied. Paste it into the folder picker.', parent=self.root)
         except tk.TclError:
