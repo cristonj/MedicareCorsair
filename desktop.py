@@ -23,6 +23,20 @@ MUTED = '#52695d'
 GREEN = '#205b49'
 
 
+def enable_high_dpi():
+    """Request native pixels before creating Tk; never let Windows bitmap-scale it."""
+    if sys.platform != 'win32':
+        return
+    import ctypes
+    try:
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except (AttributeError, OSError):
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        except (AttributeError, OSError):
+            ctypes.windll.user32.SetProcessDPIAware()
+
+
 def clipboard_path(browser):
     """Use a portable path so the clipboard does not contain the account name."""
     suffix = '/manifest.json' if browser == 'Firefox' else ''
@@ -36,6 +50,7 @@ def clipboard_path(browser):
 class Launcher:
     def __init__(self, root):
         self.root = root
+        self.ui_scale = max(1, root.winfo_fpixels('1i') / 96) if sys.platform == 'win32' else 1
         try:
             self.server = ThreadingHTTPServer(('127.0.0.1', 8000), Handler)
         except OSError as error:
@@ -48,12 +63,46 @@ class Launcher:
         self.browser = None
         self.target = None
         root.title('MedicareCorsair')
-        root.geometry(f'{min(1060,root.winfo_screenwidth()-60)}x{min(710,root.winfo_screenheight()-90)}')
-        root.minsize(min(820,root.winfo_screenwidth()-60), min(560,root.winfo_screenheight()-90))
+        root.geometry(f'{min(self.px(1060),root.winfo_screenwidth()-60)}x{min(self.px(710),root.winfo_screenheight()-90)}')
+        root.minsize(min(self.px(820),root.winfo_screenwidth()-60), min(self.px(500),root.winfo_screenheight()-90))
         root.configure(bg=BG)
         self.body = tk.Frame(root, bg=BG, padx=24, pady=18)
         self.body.pack(fill='both', expand=True)
         self.show_welcome()
+
+    def px(self, value):
+        return round(value * getattr(self, 'ui_scale', 1))
+
+    def scale_layout(self, parent=None):
+        """Tk scales point fonts itself; scale pixel spacing and frames to match."""
+        parent = parent or self.body
+        if getattr(self, 'ui_scale', 1) == 1:
+            return
+        for widget in [parent, *parent.winfo_children()]:
+            if not getattr(widget, '_corsair_scaled', False):
+                for key in ('padx', 'pady', 'wraplength', 'borderwidth', 'highlightthickness'):
+                    if key in widget.keys():
+                        value = widget.cget(key)
+                        try: widget.configure(**{key: self.px(float(value))})
+                        except (ValueError, TypeError, tk.TclError): pass
+                if widget.winfo_class() == 'Frame':
+                    for key in ('width', 'height'):
+                        widget.configure(**{key: self.px(float(widget.cget(key)))})
+                if widget.winfo_manager() == 'pack':
+                    options = widget.pack_info()
+                    for key in ('padx', 'pady', 'ipadx', 'ipady'):
+                        value = options[key]
+                        parts = value if isinstance(value, tuple) else str(value).split()
+                        widget.pack_configure(**{key: tuple(self.px(float(v)) for v in parts)})
+                elif widget.winfo_manager() == 'grid':
+                    options = widget.grid_info()
+                    for key in ('padx', 'pady', 'ipadx', 'ipady'):
+                        value = options[key]
+                        parts = value if isinstance(value, tuple) else str(value).split()
+                        widget.grid_configure(**{key: tuple(self.px(float(v)) for v in parts)})
+                widget._corsair_scaled = True
+        for child in parent.winfo_children():
+            self.scale_layout(child)
 
     def close(self):
         self.server.shutdown()
@@ -84,6 +133,7 @@ class Launcher:
         self.button('Microsoft Edge  →', lambda: self.prepare('Edge'))
         self.button('Firefox  →', lambda: self.prepare('Firefox'))
         tk.Label(self.body, text='Your browser will ask you to add the extension.', bg=BG, fg=MUTED, font=('Segoe UI', 10), wraplength=510, justify='left').pack(anchor='w', side='bottom', pady=(20, 0))
+        self.scale_layout()
 
     def prepare(self, browser):
         try:
@@ -118,49 +168,63 @@ class Launcher:
         self.clear()
         address={'Edge':'edge://extensions/', 'Chrome':'chrome://extensions/', 'Firefox':'about:debugging#/runtime/this-firefox'}[self.browser]
         guide=json.loads((ROOT/'setup-guides.json').read_text(encoding='utf-8-sig'))[self.browser.lower()]
-        tk.Label(self.body,text=f'Add to {self.browser}',bg=BG,fg=INK,font=('Arial',20,'bold')).pack(anchor='w',pady=(10,12))
+        tk.Label(self.body,text=f'Add to {self.browser}',bg=BG,fg=INK,font=('Segoe UI',20,'bold')).pack(anchor='w',pady=(6,6))
         footer='Return to your original MedicareCorsair tab and refresh it. Keep this helper open.'
         if self.browser=='Firefox':footer+=' Firefox removes temporary add-ons when it closes.'
         finish=tk.Frame(self.body,bg=BG);finish.pack(side='bottom',fill='x',pady=(8,0))
-        self.notice=tk.Label(finish,text='',bg=BG,fg=GREEN,font=('Arial',10));self.notice.pack(fill='x')
-        tk.Label(finish,text=footer,bg=BG,fg=INK,font=('Arial',11,'bold'),wraplength=max(400,self.root.winfo_width()-80),justify='left').pack(fill='x')
-        tk.Button(finish,text='Choose a different browser',command=self.show_welcome,bg=BG,fg=GREEN,relief='flat',font=('Arial',10,'underline')).pack(anchor='w')
+        self.notice=tk.Label(finish,text='',bg=BG,fg=GREEN,font=('Segoe UI',10));self.notice.pack(fill='x')
+        tk.Label(finish,text=footer,bg=BG,fg=INK,font=('Segoe UI',11,'bold'),wraplength=max(400,self.root.winfo_width()/getattr(self,'ui_scale',1)-80),justify='left').pack(fill='x')
+        tk.Button(finish,text='Choose a different browser',command=self.show_welcome,bg=BG,fg=GREEN,relief='flat',font=('Segoe UI',10,'underline')).pack(anchor='w')
         columns=tk.Frame(self.body,bg=BG);columns.pack(fill='both',expand=True)
-        picture=tk.Frame(columns,bg=BG);picture.pack(side='left',fill='both',expand=True,padx=(0,20))
-        instructions=tk.Frame(columns,bg=BG,width=330);instructions.pack(side='right',fill='y');instructions.pack_propagate(False)
+        logical_width=self.root.winfo_width()/getattr(self,'ui_scale',1)
+        compact=self.root.winfo_height()/getattr(self,'ui_scale',1)<580
+        picture=tk.Frame(columns,bg=BG);picture.pack(side='top' if compact else 'left',fill='x' if compact else 'both',expand=not compact,padx=0 if compact else (0,20))
+        instructions=tk.Frame(columns,bg=BG,width=380);instructions.pack(side='top' if compact else 'right',fill='both' if compact else 'y',expand=compact);instructions.pack_propagate(False)
+        panels=[]
+        if compact:
+            for col in range(3):
+                instructions.columnconfigure(col,weight=1,uniform='steps')
+                panel=tk.Frame(instructions,bg=BG);panel.grid(row=0,column=col,sticky='new',padx=(0,10) if col<2 else 0);panels.append(panel)
         path=ROOT/'assets'/'setup'/f'{self.browser.lower()}-extensions.png'
         with Image.open(path) as im:
             self.source_image=im.crop((0,0,im.width,310)) if self.browser=='Firefox' else im.copy()
-        preview=self.source_image.copy();preview.thumbnail((max(250,min(600,self.root.winfo_width()-410)),max(200,min(300,self.root.winfo_height()-330))))
+        preview=self.source_image.copy();preview.thumbnail((self.px(600) if compact else max(self.px(250),min(self.px(600),self.root.winfo_width()-self.px(460))),self.px(45) if compact else max(self.px(200),min(self.px(300),self.root.winfo_height()-self.px(330)))),Image.Resampling.LANCZOS)
         self.preview_photo=ImageTk.PhotoImage(preview)
-        tk.Label(picture,image=self.preview_photo,bg='white').pack(anchor='center',expand=True)
-        tk.Label(picture,text='Official example — look for MedicareCorsair, not the sample extension.',bg=BG,fg=MUTED,font=('Arial',10),wraplength=max(260,self.root.winfo_width()-430)).pack(pady=6)
-        tk.Button(picture,text='Enlarge screenshot',command=self.enlarge_screenshot,bg='white',fg=GREEN,relief='flat',font=('Arial',11)).pack()
+        if not compact:
+            tk.Label(picture,image=self.preview_photo,bg='white').pack(anchor='center',expand=True)
+            tk.Label(picture,text='Official example — look for MedicareCorsair, not the sample extension.',bg=BG,fg=MUTED,font=('Segoe UI',10),wraplength=max(260,logical_width-480)).pack(pady=6)
+        tk.Button(picture,text='View browser screenshot' if compact else 'Enlarge screenshot',command=self.enlarge_screenshot,bg='white',fg=GREEN,relief='flat',font=('Segoe UI',11)).pack()
         def line(number,title,text):
-            tk.Label(instructions,text=f'{number}. {title}',bg=BG,fg=INK,font=('Arial',13,'bold'),anchor='w',justify='left').pack(fill='x',pady=(10,3))
-            tk.Label(instructions,text=text,bg=BG,fg=INK,font=('Arial',11),wraplength=325,anchor='w',justify='left').pack(fill='x')
-        open_keys='Command+T, Command+V, then Return' if sys.platform=='darwin' else 'Ctrl+T, Ctrl+V, then Enter'
-        line(1,'Open this address',f'Copy the address below. In the same {self.browser} browser, press {open_keys}.')
-        tk.Button(instructions,text='Copy '+address,command=lambda:self.copy_text(address,'Address copied. Paste it in your browser’s address bar.'),bg='white',fg=GREEN,font=('Arial',11,'bold'),relief='solid',bd=1,padx=6,pady=8,wraplength=315).pack(fill='x',pady=6)
+            parent=panels[number-1] if compact else instructions
+            wrap=(logical_width-100)/3 if compact else 375
+            tk.Label(parent,text=f'{number}. {title}',bg=BG,fg=INK,font=('Segoe UI',12 if compact else 13,'bold'),wraplength=wrap,anchor='w',justify='left').pack(fill='x',pady=(3,3))
+            tk.Label(parent,text=text,bg=BG,fg=INK,font=('Segoe UI',11),wraplength=wrap,anchor='w',justify='left').pack(fill='x')
+            return parent
+        open_keys='Command+T → Command+V → Return' if sys.platform=='darwin' else 'Ctrl+T → Ctrl+V → Enter'
+        first_panel=line(1,'Open this address',f'In {self.browser}: {open_keys}.')
+        tk.Button(first_panel,text=('Copy about:debugging address' if self.browser=='Firefox' else 'Copy '+address),command=lambda:self.copy_text(address,'Address copied. Paste it in your browser’s address bar.'),bg='white',fg=GREEN,font=('Segoe UI',11,'bold'),relief='solid',bd=1,padx=6,pady=8,wraplength=(logical_width-140)/3 if compact else 365).pack(fill='x',pady=6)
         if self.browser=='Firefox':
-            line(2,'Load Temporary Add-on','Select This Firefox on the left, then Load Temporary Add-on at the top.')
+            line(2,'Load Temporary Add-on','Click This Firefox (left), then Load Temporary Add-on (top).')
         else:
             where='bottom-left' if self.browser=='Edge' else 'top-right'
             line(2,'Developer mode → Load unpacked',f'Turn on Developer mode at the {where}. Then click Load unpacked at the top.')
         path_keys='Command+Shift+G, Command+V, then Return' if sys.platform=='darwin' else 'Ctrl+L, Ctrl+V, then Enter'
         confirm='Open if asked' if self.browser=='Firefox' else 'Select' if sys.platform=='darwin' else 'Select Folder'
-        line(3,'Select the setup folder' if self.browser!='Firefox' else 'Select manifest.json',f'Copy the path below. In the picker press {path_keys}. Click {confirm}.')
-        tk.Button(instructions,text='Copy setup path',command=lambda:self.copy_text(clipboard_path(self.browser),'Setup path copied. Paste it into the folder picker.'),bg=GREEN,fg='white',relief='flat',font=('Arial',12,'bold'),pady=9).pack(fill='x',pady=8)
+        last_panel=line(3,'Select the setup folder' if self.browser!='Firefox' else 'Select manifest.json',f'Copy the path. In the picker press {path_keys}. Click {confirm}.')
+        tk.Button(last_panel,text='Copy setup path',command=lambda:self.copy_text(clipboard_path(self.browser),'Setup path copied. Paste it into the folder picker.'),bg=GREEN,fg='white',relief='flat',font=('Segoe UI',12,'bold'),pady=9).pack(fill='x',pady=8)
+        self.scale_layout()
     def enlarge_screenshot(self):
         window=tk.Toplevel(self.root);window.title(f'{self.browser} — official screenshot')
-        preview=self.source_image.copy();preview.thumbnail((window.winfo_screenwidth()-80,window.winfo_screenheight()-120))
+        preview=self.source_image.copy();preview.thumbnail((window.winfo_screenwidth()-80,window.winfo_screenheight()-240),Image.Resampling.LANCZOS)
         window.photo=ImageTk.PhotoImage(preview)
         tk.Label(window,image=window.photo).pack()
-        tk.Button(window,text='Close',command=window.destroy,font=('Arial',12),padx=20,pady=8).pack()
+        tk.Label(window,text='Official example — look for MedicareCorsair, not the sample extension.',font=('Segoe UI',11),wraplength=preview.width,pady=6).pack()
+        tk.Button(window,text='Close',command=window.destroy,font=('Segoe UI',12),padx=20,pady=8).pack()
 
 
 
 if __name__ == '__main__':
+    enable_high_dpi()
     root = tk.Tk()
     Launcher(root)
     root.mainloop()

@@ -28,7 +28,7 @@ jobs:
       - name: Test
         run: |
           .venv/Scripts/python.exe -m unittest discover -s tests -v
-          node --test tests/test_extension.cjs tests/test_install.cjs
+          node --test tests/test_extension.cjs tests/test_install.cjs tests/test_guest.cjs tests/test_app.cjs
       - name: Build executable
         shell: pwsh
         run: ./build-windows.ps1
@@ -70,7 +70,11 @@ jobs:
           npm ci
       - name: Build macOS app
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --collect-all pypdfium2 --add-data 'extension:extension' --add-data 'setup-guides.json:.' --add-data 'assets:assets' --add-data 'backend/ocr.cjs:backend' --add-data 'node_modules:node_modules' --add-binary "$(command -v node):runtime" desktop.py
+          node --test tests/test_extension.cjs tests/test_install.cjs tests/test_guest.cjs tests/test_app.cjs
+          mkdir -p build/runtime
+          cp package.json package-lock.json build/runtime/
+          npm ci --omit=dev --prefix build/runtime
+          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --collect-all pypdfium2 --add-data 'extension:extension' --add-data 'setup-guides.json:.' --add-data 'assets:assets' --add-data 'backend/ocr.cjs:backend' --add-data 'build/runtime/node_modules:node_modules' --add-binary "$(command -v node):runtime" desktop.py
           ditto -c -k --sequesterRsrc --keepParent dist/MedicareCorsair.app "dist/${{ matrix.asset }}"
           cd dist
           shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"

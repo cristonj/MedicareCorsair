@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MedicareCorsair",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Collect every page of your Medicare plan results and bring them into your local comparison.",
   "permissions": ["activeTab", "scripting", "storage"],
   "background": {"service_worker":"background.js"},

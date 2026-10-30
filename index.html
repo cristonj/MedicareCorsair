@@ -25,9 +25,11 @@
 <section id="account-view" class="setup-view" hidden aria-labelledby="account-title">
 <h1 id="account-title" tabindex="-1">Use your Medicare info</h1>
 <p id="account-status" role="status">Open Plan Finder. Check your saved drugs and pharmacies there.</p>
+<div id="guest-prompt"></div>
 <button id="account-start" class="button primary" type="button">Open Medicare &amp; get prices</button>
+<button id="account-open" class="button secondary" type="button" hidden>Review on Medicare ↗</button>
 <button id="account-guest" class="plain" type="button">Use the questionnaire instead</button>
-<p class="hint">When Medicare shows plans, we’ll collect every page and bring you back here. No password is shared with this app.</p>
+<p id="account-note" class="hint">When Medicare shows plans, we’ll collect every page and bring you back here. No password is shared with this app.</p>
 <div id="account-results" hidden><div id="account-summary" class="decision" aria-live="polite"></div><p id="account-warnings" class="hint"></p><label class="checkbox"><input id="account-confirm" type="checkbox"><span>These Medicare results use my correct location, drugs, quantities, help with costs, and pharmacies.</span></label><div id="account-plans" hidden></div></div>
 </section>
 <section id="setup-view" class="setup-view" aria-labelledby="setup-title"><div class="setup-progress"><span id="setup-step">Getting started</span><button id="setup-back" class="plain" type="button" hidden>Back</button></div><h1 id="setup-title" tabindex="-1">Are you logged into Medicare.gov in this browser?</h1><div id="setup-content"></div><div class="setup-footer"><button id="setup-next" class="button primary" type="button" disabled>Continue</button></div></section>
@@ -35,18 +37,21 @@
 <div class="page-heading"><div><h1 id="page-title">Compare drug plans</h1><p id="enrollment-title">Checking enrollment dates…</p><button id="edit-setup" class="plain" type="button">Edit your setup</button></div><div class="page-status"><span class="year-tag" id="year">Loading</span><a id="sync-summary" href="#sources">Checking data…</a></div></div>
 <div class="dashboard">
 <aside class="profile">
-<h2>Your details</h2>
+<h2 class="entry-heading">Your details</h2>
+<div class="entry-location">
 <label for="zip">ZIP code</label><input id="zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5" autocomplete="postal-code" placeholder="5 digits">
-<label for="state">State or territory</label><select id="state" disabled><option value="">Loading…</option></select>
+<label for="state" hidden>State or territory</label><select id="state" hidden disabled><option value="">Loading…</option></select>
+</div><div class="entry-medications">
 <div class="label-row"><label for="drug-search">Medication</label><a class="small-link" href="https://dailymed.nlm.nih.gov/dailymed/" target="_blank" rel="noopener noreferrer">Find label ↗</a></div>
 <form id="search-form"><div class="search-control"><input id="drug-search" type="search" placeholder="Medication name" minlength="2" maxlength="100" autocomplete="off" required><button type="submit" aria-label="Search medications">Search</button></div></form>
 <div id="search-message" role="status"></div><div id="drug-results" class="drug-results"></div>
 <form id="add-form" hidden><div class="chosen-drug" id="chosen-drug"></div><div class="input-row"><div><label for="quantity">Quantity per fill</label><input id="quantity" type="number" min="0.01" max="100000" step="0.01" value="30" required></div><div><label for="days">Days supply</label><select id="days"><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></div></div><button class="button secondary full" type="submit">Add medication</button></form>
 <div class="med-heading"><h3>Medications <span id="med-count">0</span></h3></div><div id="med-list"></div>
+</div><div class="entry-pharmacy">
 <label for="pharmacy">Preferred pharmacies</label><input id="pharmacy" required maxlength="200" placeholder="Name or location"><a id="pharmacy-help" class="small-link" href="https://www.medicare.gov/plan-compare/" target="_blank" rel="noopener noreferrer">Find pharmacies ↗</a>
 
-<button id="compare" class="button primary full" disabled>Compare plans</button><div id="profile-message" role="status"></div>
-<div class="profile-actions"><button id="reset" class="plain">Clear</button></div>
+</div><div class="entry-actions"><button id="compare" class="button primary full" disabled>Compare plans</button><div id="profile-message" role="status"></div>
+<div class="profile-actions"><button id="reset" class="plain">Clear</button><button id="manual-import" type="button" class="plain">Import PDFs</button></div></div>
 </aside>
 <section class="results" aria-labelledby="results-title"><div class="results-heading"><h2 id="results-title">Plan options</h2><div class="result-actions"><button id="open-import" type="button" class="button secondary">Get Medicare prices</button><a id="finder-source" href="https://www.medicare.gov/plan-compare/" target="_blank" rel="noopener noreferrer">Plan Finder ↗</a></div></div>
 <p id="scope-note" class="scope-note">Stand-alone Part D plans.</p><div id="coverage-route" hidden></div>

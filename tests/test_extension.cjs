@@ -25,19 +25,21 @@ test('dashboard handshake announces extension without exposing a saved capture',
 });
 
 function accountBackground(){
- const listeners=[],sent=[],created=[],injected=[];let tabId=100;
- const extension={storage:{session:{remove:async()=>{}}},runtime:{id:'corsair',onMessage:{addListener:f=>listeners.push(f)}},tabs:{
+ const listeners=[],sent=[],created=[],injected=[],ports=new Map();let tabId=100,onConnect;
+ const extension={storage:{session:{remove:async()=>{}}},runtime:{id:'corsair',onMessage:{addListener:f=>listeners.push(f)},onConnect:{addListener:f=>onConnect=f}},tabs:{
   query:async()=>[],get:async id=>({id,url:'https://medicarecorsair.netlify.app/'}),
   create:async options=>{const tab={id:++tabId,status:'complete',...options};created.push(tab);return tab;},
   sendMessage:async(id,message)=>{sent.push({id,message});return {received:true};},update:async()=>{},
   onUpdated:{addListener:()=>{}},onRemoved:{addListener:()=>{}}
  },scripting:{executeScript:async options=>{injected.push(options);}}};
  const context=vm.createContext({chrome:extension,URL,Date});vm.runInContext(fs.readFileSync('extension/background.js','utf8'),context);
+ function connect(tab){let disconnect;const port={name:'corsair-dashboard',sender:{url:'https://medicarecorsair.netlify.app/',tab:{id:tab}},onDisconnect:{addListener:f=>disconnect=f},disconnect:()=>disconnect?.()};onConnect(port);ports.set(tab,port);}
+ connect(7);connect(8);
  const dispatch=(message,tab=7,url='https://medicarecorsair.netlify.app/')=>new Promise(resolve=>{
   let pending=false;for(const listener of listeners){if(listener(message,{id:'corsair',url,tab:{id:tab}},resolve)===true)pending=true;}
   if(!pending)resolve(undefined);
  });
- return {dispatch,sent,created,injected};
+ return {dispatch,sent,created,injected,ports};
 }
 test('account collection returns to the originating tab, with separate concurrent requests',async()=>{
  const f=accountBackground();
@@ -58,6 +60,10 @@ test('untrusted sites cannot start jobs and cancellation stops collection',async
  assert.equal((await f.dispatch({type:'accountPoll',requestId:'one'},101)).ok,true);
  await f.dispatch({type:'medicarecorsair-account-cancel',requestId:'one'},7);
  assert.equal((await f.dispatch({type:'accountPoll',requestId:'one'},101)).ok,false);
+});
+test('closing or reloading the originating page immediately discards the in-memory job',async()=>{
+ const f=accountBackground();await f.dispatch({type:'medicarecorsair-account-start',requestId:'one',year:2027},7);
+ f.ports.get(7).disconnect();assert.equal((await f.dispatch({type:'accountPoll',requestId:'one'},101)).ok,false);
 });
 test('first question offers account path without rendering the questionnaire',()=>{
  const source=fs.readFileSync('app.js','utf8'),elements={};let accountOpened=false;
