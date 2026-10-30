@@ -1,5 +1,7 @@
-"""Run: python server.py. Python 3.11+; no third-party dependencies."""
+"""Run: python server.py. Python 3.11+; install requirements for PDF import."""
 import argparse
+import io
+import zipfile
 from collections import OrderedDict
 from contextlib import closing
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -78,6 +80,12 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             if parsed.path == "/api/status": return self.send_json(data.status())
+            if parsed.path == '/extension.zip':
+                buffer=io.BytesIO()
+                with zipfile.ZipFile(buffer,'w',zipfile.ZIP_DEFLATED) as archive:
+                    for path in (ROOT/'extension').iterdir():
+                        if path.is_file() and path.suffix in {'.js','.json','.css','.html'}:archive.write(path,path.name)
+                payload=buffer.getvalue();self.send_response(200);self.send_header('Content-Type','application/zip');self.send_header('Content-Disposition','attachment; filename="MedicareCorsair-extension.zip"');self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload);return
             if parsed.path == "/api/drugs": return self.send_json(drugs(parse_qs(parsed.query).get("q", [""])[0].strip()))
             if parsed.path == "/api/states":
                 year = enrollment_context()["year"]
@@ -97,7 +105,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.headers.get("Content-Type", "").split(";")[0] != "application/json": return self.send_json({"error": "Use application/json"}, 415)
         try:
             length = int(self.headers.get("Content-Length", 0))
-            maximum = 12 * 1024 * 1024 if self.path == '/api/import-quotes' else 64000
+            maximum = 28 * 1024 * 1024 if self.path == '/api/import-quotes' else 64000
             if not 0 < length <= maximum: return self.send_json({"error": "Request is too large or empty"}, 413)
             body = json.loads(self.rfile.read(length))
             if self.path == '/api/import-quotes': return self.send_json(import_quotes(body))

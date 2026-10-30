@@ -121,12 +121,16 @@ def build_snapshot(source, destination):
         CREATE TABLE costs (plan_key TEXT, tier INTEGER, days INTEGER, level INTEGER, data TEXT);
         CREATE TABLE indications (plan_key TEXT, rxcui TEXT, disease TEXT);
         CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE ma_plans (id TEXT PRIMARY KEY, name TEXT, provider TEXT, premium REAL, deductible REAL);
         ''')
         STATE["phase"] = "Indexing plan premiums and deductibles"
         formularies, plan_ids = set(), set()
         for row in records(archive, "plan information"):
-            if not row["CONTRACT_ID"].startswith("S"): continue
             pid = "-".join([row["CONTRACT_ID"], row["PLAN_ID"], row["SEGMENT_ID"]])
+            if row["CONTRACT_ID"].startswith(('H','R')):
+                db.execute('INSERT OR IGNORE INTO ma_plans VALUES (?,?,?,?,?)',(pid,row['PLAN_NAME'],row['CONTRACT_NAME'],float(row['PREMIUM']),float(row['DEDUCTIBLE'])))
+                continue
+            if not row["CONTRACT_ID"].startswith("S"): continue
             db.execute("INSERT OR IGNORE INTO plans VALUES (?,?,?,?,?,?,?,?,?,?,?)", (pid, row["CONTRACT_ID"], row["PLAN_ID"], row["SEGMENT_ID"], row["PLAN_NAME"], row["CONTRACT_NAME"], row["FORMULARY_ID"], float(row["PREMIUM"]), float(row["DEDUCTIBLE"]), row["PDP_REGION_CODE"].lstrip("0"), row["PLAN_SUPPRESSED_YN"]))
             formularies.add(row["FORMULARY_ID"]); plan_ids.add(pid)
         for row in records(archive, "geographic locator"):
@@ -152,7 +156,7 @@ def build_snapshot(source, destination):
             pid = row["CONTRACT_ID"] + "-" + row["PLAN_ID"] + "-000"
             if pid in plan_ids: db.execute("INSERT INTO indications VALUES (?,?,?)", (pid, row["RXCUI"], row["DISEASE"]))
         db.executescript("CREATE INDEX drug_lookup ON drugs(formulary,rxcui); CREATE INDEX cost_lookup ON costs(plan_key,tier,days,level); CREATE INDEX indication_lookup ON indications(plan_key,rxcui);")
-        source = {**source, "imported_at": now(), "plan_count": len(plan_ids), "formulary_rows": db.execute("SELECT COUNT(*) FROM drugs").fetchone()[0], "scope": "Stand-alone Part D plans (PDP); Medicare Advantage excluded", "page": CMS_PAGE}
+        source = {**source, "schema":2, "imported_at": now(), "plan_count": len(plan_ids), "formulary_rows": db.execute("SELECT COUNT(*) FROM drugs").fetchone()[0], "scope": "Stand-alone Part D screening; Medicare Advantage catalog for imported quotes", "page": CMS_PAGE}
         if not source["plan_count"] or not source["formulary_rows"]: raise ValueError("Incomplete CMS import; previous snapshot preserved.")
         db.execute("INSERT INTO metadata VALUES ('source',?)", (json.dumps(source),))
         db.commit()
@@ -168,7 +172,7 @@ def sync():
         year = enrollment_context()["year"]
         source = discover(json_get(CATALOG), year)
         previous = metadata(year)
-        if not previous or previous["url"] != source["url"] or previous.get("modified") != source["modified"]:
+        if not previous or previous.get('schema')!=2 or previous["url"] != source["url"] or previous.get("modified") != source["modified"]:
             temp = DATA / f"plans-{year}.next.sqlite"
             temp.unlink(missing_ok=True)
             build_snapshot(source, temp)

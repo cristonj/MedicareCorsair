@@ -66,8 +66,8 @@ def parse_quotes(text, year):
     # A common OCR confusion is '$4802-151-0' for 'S4802-151-0'.
     # This correction is limited to the labeled ID; IDs are checked against CMS.
     text=re.sub(r'(Plan\s*ID\s*:\s*)\$(\d{4}\s*-)',r'\1S\2',text,flags=re.I)
-    ids=list(re.finditer(r'Plan\s*ID\s*:\s*(S\d{4})\s*-\s*(\d{3})\s*-\s*(\d{1,3})',text,re.I))
-    if not ids: raise ValueError('No stand-alone Part D plan IDs were readable. Use the Medicare results page or its printout.')
+    ids=list(re.finditer(r'Plan\s*ID\s*:\s*([SHR]\d{4})\s*-\s*(\d{3})\s*-\s*(\d{1,3})',text,re.I))
+    if not ids: raise ValueError('No Medicare plan IDs were readable. Use the Medicare results page or its printout.')
     found=[]; warnings=[]
     for index,match in enumerate(ids):
         block=text[match.end():ids[index+1].start() if index+1<len(ids) else len(text)]
@@ -76,7 +76,8 @@ def parse_quotes(text, year):
         pid=f'{match[1].upper()}-{match[2]}-{match[3].zfill(3)}'
         if not total or not premium:
             warnings.append(f'{pid}: missing or unreadable total/premium; skipped.'); continue
-        total_amounts=re.findall(r'\$\s*([\d,]+\.\d{2})',block[total.end():premium.start()])
+        total_section=re.split(r'Monthly\s+Premium|Other\s+Costs|Plan\s+Benefits|Pharmacies|Estimated\s+total\s+drug',block[total.end():],maxsplit=1,flags=re.I)[0]
+        total_amounts=re.findall(r'\$\s*([\d,]+\.\d{2})',total_section)
         premium_section=re.split(r'Includes\s*:|Pharmacies|Drugs',block[premium.end():],maxsplit=1,flags=re.I)[0]
         premium_amounts=re.findall(r'\$\s*([\d,]+\.\d{2})',premium_section)
         if len(total_amounts)!=1 or len(premium_amounts)!=1:
@@ -85,7 +86,12 @@ def parse_quotes(text, year):
         total_value=Decimal(total_amounts[0].replace(',','')); monthly=Decimal(premium_amounts[0].replace(',',''))
         if total_value < monthly*12-Decimal('.02') or total_value>1000000 or monthly>100000:
             warnings.append(f'{pid}: inconsistent amounts; skipped.'); continue
-        found.append({'id':pid,'annual_total':float(total_value),'monthly_premium':float(monthly),'annual_drugs':float(max(Decimal(0),total_value-monthly*12))})
+        deductible=re.search(r'Deductible\s*\$\s*([\d,]+\.\d{2})',block,re.I)
+        maximum_section=re.search(r'Maximum\s+you\s+pay\s+for\s+health\s+services\s*(.*?)(?:Plan\s+Benefits|Copays|Drugs|$)',block,re.I|re.S)
+        maximum=re.search(r'\$\s*([\d,]+(?:\.\d{2})?)\s+In-network',maximum_section[1],re.I) if maximum_section else None
+        primary=re.search(r'Primary\s+doctor\s*:\s*([^\n]+)',block,re.I)
+        specialist=re.search(r'Specialist\s*:\s*([^\n]+)',block,re.I)
+        found.append({'id':pid,'annual_total':float(total_value),'monthly_premium':float(monthly),'annual_drugs':float(max(Decimal(0),total_value-monthly*12)), 'deductible':float(deductible[1].replace(',','')) if deductible else None,'medical_max':float(maximum[1].replace(',','')) if maximum else None,'primary_copay':primary[1].strip()[:80] if primary else None,'specialist_copay':specialist[1].strip()[:80] if specialist else None,'no_drug_coverage':bool(re.search(r'Includes\s*:\s*Only\s+health\s+coverage',block,re.I))})
     # Multiple differing appearances are ambiguous, not last-one-wins.
     unique={}
     for quote in found:
@@ -95,7 +101,7 @@ def parse_quotes(text, year):
     return list(unique.values()), warnings
 
 
-def import_quotes(body):
+def extract_document(body):
     if not isinstance(body,dict): raise ValueError('Choose a PDF or paste results text.')
     ocr=False
     if body.get('pdf'):
@@ -110,15 +116,49 @@ def import_quotes(body):
         if not isinstance(text,str) or len(text)>MAX_BYTES: raise ValueError('The saved page is too large.')
         if '<html' in text.lower() or '<!doctype' in text.lower():
             parser=TextOnly(); parser.feed(text); text=''.join(parser.parts)
+    return text,ocr
+
+
+def merge_documents(documents,year):
+    combined={};warnings=[];used_ocr=False;documents_read=0;expected_counts=set()
+    for index,document in enumerate(documents):
+        try:
+            text,ocr=extract_document(document)
+            quotes,notes=parse_quotes(text,year)
+            for count in re.findall(r'Showing\s+[\d,]+\s*to\s*[\d,]+\s*of\s*([\d,]+)',text,re.I):expected_counts.add(int(count.replace(',','')))
+        except ValueError as error:
+            # Never hide a conflicting year amongst otherwise valid pages.
+            if 'Import rejected' in str(error): raise
+            warnings.append(f'File {index+1}: {error}');continue
+        for quote in quotes:
+            previous=combined.get(quote['id'])
+            if previous and any(previous[k]!=quote[k] for k in ['annual_total','monthly_premium']):
+                raise ValueError('Two files disagree on a plan price. Use files from the same Medicare comparison.')
+            combined[quote['id']]=quote
+        warnings.extend(notes);used_ocr |= ocr;documents_read+=1
+    if not combined: raise ValueError('No readable plan totals were found in these files.')
+    if len(expected_counts)>1:raise ValueError('These files show different search totals. Use pages from the same Medicare comparison.')
+    if expected_counts and len(combined)<max(expected_counts):warnings.insert(0,f"Read {len(combined)} of {max(expected_counts)} plans. Add the remaining result pages for a complete comparison.")
+    return list(combined.values()),warnings,used_ocr,documents_read
+
+
+def import_quotes(body):
+    if not isinstance(body,dict): raise ValueError('Choose a PDF or paste results text.')
+    documents=body.get('documents',[body])
+    if not isinstance(documents,list) or not 1<=len(documents)<=60: raise ValueError('Use a collection of 1–60 result pages.')
     year=enrollment_context()['year']
-    quotes,warnings=parse_quotes(text,year)
+    quotes,warnings,ocr,documents_read=merge_documents(documents,year)
     source=data.metadata(year)
     if not source: raise ValueError('Wait for CMS data to finish loading before importing.')
     with closing(data.connect(year)) as db:
         known={r['id']:r['name'] for r in db.execute('SELECT id,name FROM plans')}
-    validated=[]
+        if db.execute("SELECT name FROM sqlite_master WHERE name='ma_plans'").fetchone():
+            known.update({r['id']:r['name'] for r in db.execute('SELECT id,name FROM ma_plans')})
+    validated=[];excluded=0
     for quote in quotes:
+        if quote.get('no_drug_coverage'):excluded+=1;continue
         if quote['id'] not in known: warnings.append(f"{quote['id']}: not found in the current CMS plan list; skipped."); continue
         validated.append({**quote,'name':known[quote['id']]})
+    if excluded:warnings.append(f'{excluded} plans without drug coverage were left out.')
     if not validated: raise ValueError('The document does not match any plans in the current CMS dataset.')
-    return {'year':year,'quotes':validated,'warnings':warnings,'ocr':ocr,'review_required':True,'captured_at':data.now(),'source':'Medicare Plan Finder printout (user-supplied; not authenticated)','context_required':'Confirm the same location, medications, quantities, days supply, assistance and pharmacies. The results printout does not establish these inputs.'}
+    return {'year':year,'quotes':validated,'warnings':warnings,'ocr':ocr,'documents_read':documents_read,'review_required':True,'captured_at':data.now(),'source':'Medicare Plan Finder printout (user-supplied; not authenticated)','context_required':'Confirm the same location, medications, quantities, days supply, assistance and pharmacies. The results printout does not establish these inputs.'}

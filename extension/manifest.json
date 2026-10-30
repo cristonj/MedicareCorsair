@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "MedicareCorsair",
+  "version": "0.3.0",
+  "description": "Collect every page of your Medicare plan results and bring them into your local comparison.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": {"service_worker":"background.js"},
+  "host_permissions": ["http://127.0.0.1:8000/*", "http://localhost:8000/*"],
+  "action": {"default_popup": "popup.html", "default_title": "Collect Medicare results"},
+  "content_scripts": [{"matches": ["http://127.0.0.1:8000/*", "http://localhost:8000/*"], "js": ["bridge.js"], "run_at":"document_start"}]
+}

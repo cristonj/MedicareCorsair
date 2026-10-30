@@ -63,7 +63,10 @@ class ImportTests(unittest.TestCase):
     def test_real_import_path_and_unknown_prices(self):
         with patch.object(data,"RemoteZip",return_value=fixture()):
             source = data.build_snapshot(self.source,self.path/"plans-2027.sqlite")
-        self.assertEqual(source["plan_count"],1)  # Excludes MA.
+        self.assertEqual(source["plan_count"],1)  # PDP screening stays separate.
+        self.assertEqual(source["schema"],2)
+        with closing(sqlite3.connect(self.path/"plans-2027.sqlite")) as db:
+            self.assertEqual(db.execute('SELECT id,name FROM ma_plans').fetchall(),[('H0001-001-000','Test MA')])
         with patch.object(data,"DATA",self.path), patch("backend.compare.enrollment_context",return_value={"year":2027}):
             result = compare({"state":"Illinois","medications":[{"rxcui":"123","name":"Test drug","quantity":30,"days":30}, {"rxcui":"999","name":"Missing drug","quantity":30,"days":30}]})
         plan = result["plans"][0]
