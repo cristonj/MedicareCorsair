@@ -17,6 +17,10 @@ Open http://127.0.0.1:8000. The service automatically discovers and imports the 
 
 A standalone desktop wrapper is not needed for these public data connections. The local server is intentionally bound to loopback. It is not an internet production server.
 
+## Netlify
+
+`netlify.toml` builds a static frontend in `dist/` and publishes only its browser assets. Connect this repository in Netlify and use the settings from the file. This is a frontend preview only: the current Python server runs on localhost, so `/api/` calls, comparison data, PDF imports, and `/extension.zip` will not work on Netlify. The current extension also communicates only with localhost. A usable hosted deployment needs a separately hosted production API with persistent CMS data, a same-origin `/api/*` proxy, a hosted-compatible extension, and an updated privacy notice. Do not expose the current development server directly to the internet.
+
 ## What works
 
 - Enrollment-aware coverage year: annual enrollment October 15–December 7 selects the following benefit year. That year remains selected through December 31. Other times use the current benefit year, with an eligibility notice rather than a claim that annual enrollment is open.
