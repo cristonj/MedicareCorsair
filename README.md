@@ -99,3 +99,5 @@ node --test tests/test_extension.cjs
 ```
 
 Setup guides show one action at a time, with labeled illustrations and links to official screenshots. Browser labels and layouts may vary by version; Developer mode and extension approval remain user actions.
+
+The setup screen uses locally bundled screenshots from the documentation sources listed in `assets/setup/credits.html`. Choosing a browser prepares files only; it does not launch a browser or create a tab. Copy the displayed settings address into the same browser yourself, then return to the original website tab. The Windows-native layout is checked at 1020×650. Screenshot examples may differ by browser version.

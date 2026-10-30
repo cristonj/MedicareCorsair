@@ -381,42 +381,33 @@ window.addEventListener('message',event=>{
 });
 function updateInstallChoice(){
  const os=$('#install-os').value, browser=$('#install-browser').value, ready=os&&browser&&browser!=='safari';
- const download=$('#install-download');download.hidden=!ready;$('#download-help').hidden=!ready;
- if(!os||!browser){$('#install-guidance').textContent='Choose both options to continue.';return;}
- if(browser==='safari'){$('#install-guidance').textContent='Safari is not supported yet. On a Mac, choose Chrome, Edge, or Firefox.';return;}
- const isMac=os==='mac'||os==='mac-intel',name={chrome:'Chrome',edge:'Edge',firefox:'Firefox'}[browser];
+ const download=$('#install-download');download.hidden=!ready;$('#download-walkthrough').hidden=!ready;
+ $('#mac-chip-help').hidden=!os.startsWith('mac');
+ if(!os||!browser){$('#install-guidance').textContent='Choose your computer and browser.';return;}
+ if(browser==='safari'){$('#install-guidance').textContent='Safari is not supported. Choose Edge, Chrome, or Firefox.';return;}
+ const isMac=os.startsWith('mac'),name={chrome:'Chrome',edge:'Edge',firefox:'Firefox'}[browser];
  download.href=`https://github.com/cristonj/MedicareCorsair/releases/latest/download/${os==='mac-intel'?'MedicareCorsair-macOS-Intel.zip':isMac?'MedicareCorsair-macOS.zip':'MedicareCorsair.exe'}`;
  download.textContent=`Download for ${isMac?'Mac':'Windows'} ↓`;
- $('#install-guidance').textContent=`Open the app, choose ${name}, and follow the setup steps.${browser==='firefox'?' Firefox setup is temporary and must be repeated after Firefox closes.':''}`;
- $('#browser-help').textContent=browser==='edge'?'Edge: Open Downloads and select the menu beside the file. If it is marked unfamiliar and you trust the source, choose Keep.':browser==='chrome'?'Chrome: Open Downloads and select the warning beside the file. If it is marked unfamiliar and you trust the source, follow the prompt to keep it.':'Firefox: Open Downloads to review any unfamiliar-file warning. Firefox removes the temporary extension when it closes.';
- $('#os-help').textContent=isMac?'Mac: Open the ZIP, then open the app. This build is unsigned and not notarized, so macOS may block it.':'Windows: Open MedicareCorsair.exe after it downloads. Windows may show a warning because the app is unsigned.';
+ $('#install-guidance').textContent=`Download, open the app, then choose ${name}.${browser==='firefox'?' Firefox setup is temporary.':''}`;
 }
-let downloadSteps=[],downloadStep=0;
-async function startDownloadGuide(){
+let downloadGuideVersion=0;
+async function renderDownloadCards(){
+ updateInstallChoice();const version=++downloadGuideVersion;
  const os=$('#install-os').value,browser=$('#install-browser').value;
  if(!os||!browser||browser==='safari')return;
  try{
-  const response=await fetch('/setup-guides.json');if(!response.ok)throw new Error();
-  const guides=await response.json();
-  downloadSteps=os==='windows'?guides[browser].download:[{title:'Open Downloads',text:'In your browser, open Downloads and find MedicareCorsair-macOS.zip (or the Intel version).',label:'Downloads ↓'},{title:'Open the ZIP',text:'Double-click the ZIP to reveal MedicareCorsair.app.',label:'MedicareCorsair-macOS.zip'},{title:'Open MedicareCorsair',text:'Open the app and choose your browser. If macOS blocks it, review Apple’s official instructions before deciding whether to open it.',label:'MedicareCorsair.app'}];
-  if(os==='windows')downloadSteps.push({title:'If Windows shows a reputation warning',text:'If you see “Windows protected your PC”, select More info to review the app details. If no warning appears, continue.',label:'More info'},{title:'Review before opening',text:'Only if you trust this GitHub download and the warning is about reputation, choose Run anyway. Stop if Windows identifies malware. If the app is already open, you are finished.',label:'Run anyway'});
-  $('#download-official-help').href=os==='windows'?(browser==='edge'?'https://learn.microsoft.com/en-us/troubleshoot/microsoft-edge/development/download-failures':browser==='firefox'?'https://support.mozilla.org/kb/where-find-and-manage-downloaded-files-firefox':'https://support.google.com/chrome/answer/6261569'):'https://support.apple.com/en-us/102445';
-  downloadStep=0;renderDownloadGuide();
- }catch{$('#install-guidance').textContent='Open Help with the download below for instructions.';$('#download-help').open=true;}
+  const response=await fetch('/setup-guides.json');if(!response.ok)throw new Error();const guides=await response.json();
+  if(version!==downloadGuideVersion)return;
+  const cards=os==='windows'?guides[browser].downloadCards:guides.macCards.map((card,index)=>index===2?{...card,image:browser+'-extensions.png'}:card);
+  $('#download-cards').replaceChildren(...cards.map(card=>{
+   const article=node('article','download-card'),heading=node('h2','',card.title);
+   const link=node('a');link.href='/assets/setup/'+card.image;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Enlarge screenshot: '+card.title);
+   const picture=node('img');picture.src=link.href;picture.alt=card.title+' — example browser screenshot';link.append(picture);
+   article.append(heading,link,node('p','',card.text));return article;
+  }));
+ }catch{$('#install-guidance').textContent='Could not load the pictures. Refresh this page and try again.';}
 }
-function renderDownloadGuide(){
- const step=downloadSteps[downloadStep];$('#download-walkthrough').hidden=false;
- $('#download-step-count').textContent=`DOWNLOAD · ${downloadStep+1} OF ${downloadSteps.length}`;
- $('#download-step-title').textContent=step.title;$('#download-step-label').textContent=step.label;$('#download-step-text').textContent=step.text;
- $('#download-guide-back').disabled=downloadStep===0;$('#download-guide-next').hidden=downloadStep===downloadSteps.length-1;
- $('#download-step-title').focus();
-}
-$('#install-download').addEventListener('click',async event=>{event.preventDefault();const url=event.currentTarget.href;await startDownloadGuide();location.assign(url);});
-$('#download-guide-next').addEventListener('click',()=>{if(downloadStep<downloadSteps.length-1){downloadStep++;renderDownloadGuide();}});
-$('#download-guide-back').addEventListener('click',()=>{if(downloadStep>0){downloadStep--;renderDownloadGuide();}});
-$('#install-os').addEventListener('change',()=>$('#download-walkthrough').hidden=true);
-$('#install-browser').addEventListener('change',()=>$('#download-walkthrough').hidden=true);
-$('#install-os').addEventListener('change',updateInstallChoice);$('#install-browser').addEventListener('change',updateInstallChoice);
+$('#install-os').addEventListener('change',renderDownloadCards);$('#install-browser').addEventListener('change',renderDownloadCards);
 $('#check-install').addEventListener('click',()=>location.reload());
 document.querySelectorAll('input, textarea').forEach(input=>input.setAttribute('autocomplete','off'));
 restore();renderMeds();if(profile.coverage)showWorkspace();else showSetup();refreshStatus();setInterval(refreshStatus,30000);

@@ -20,15 +20,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Test
-        run: |
-          python -m unittest discover -s tests -v
-          node --test tests/test_extension.cjs tests/test_install.cjs
       - name: Install build dependency
         run: |
           python -m venv .venv
           .venv/Scripts/python.exe -m pip install pyinstaller==6.22.3 -r requirements.txt
           npm ci
+      - name: Test
+        run: |
+          .venv/Scripts/python.exe -m unittest discover -s tests -v
+          node --test tests/test_extension.cjs tests/test_install.cjs
       - name: Build executable
         shell: pwsh
         run: ./build-windows.ps1
@@ -70,7 +70,7 @@ jobs:
           npm ci
       - name: Build macOS app
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --collect-all pypdfium2 --add-data 'extension:extension' --add-data 'setup-guides.json:.' --add-data 'backend/ocr.cjs:backend' --add-data 'node_modules:node_modules' --add-binary "$(command -v node):runtime" desktop.py
+          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --collect-all pypdfium2 --add-data 'extension:extension' --add-data 'setup-guides.json:.' --add-data 'assets:assets' --add-data 'backend/ocr.cjs:backend' --add-data 'node_modules:node_modules' --add-binary "$(command -v node):runtime" desktop.py
           ditto -c -k --sequesterRsrc --keepParent dist/MedicareCorsair.app "dist/${{ matrix.asset }}"
           cd dist
           shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"

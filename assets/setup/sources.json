@@ -1,0 +1,18 @@
+{
+  "edge-extensions.png": "https://learn.microsoft.com/en-us/microsoft-edge/extensions/getting-started/extension-sideloading-images/developermode-toggle.png",
+  "edge-installed.png": "https://learn.microsoft.com/en-us/microsoft-edge/extensions/getting-started/extension-sideloading-images/installed-extension.png",
+  "chrome-extensions.png": "https://developer.chrome.com/static/docs/extensions/get-started/tutorial/hello-world/image/extensions-page-e0d64d89a6acf.png",
+  "chrome-pin.png": "https://developer.chrome.com/static/docs/extensions/get-started/tutorial/hello-world/image/pinning-extension-215cb97773ab6.png",
+  "firefox-extensions.png": "https://extensionworkshop.com/assets/img/documentation/develop/reload-extension.a069ba34.png",
+  "edge-download-menu.webp": "https://www.shineforms.co.uk/_astro/browser-download-edge-3.RX9YKr9I_Z21s2cQ.webp",
+  "edge-download-warning.webp": "https://www.shineforms.co.uk/_astro/browser-download-edge-4.DOsmxw19_ZiIqzI.webp",
+  "windows-smartscreen.webp": "https://www.shineforms.co.uk/_astro/browser-download-smartscreen-2.CM1YB64l_vxt0c.webp",
+  "firefox-download.png": "https://blog.mozilla.org/security/files/2016/07/uncommon_doorhanger-1.png",
+  "firefox-confirm.png": "https://blog.mozilla.org/security/files/2016/07/uncommon_dialog.png",
+  "chrome-download.png": "https://www.tseccodecell.com/screenshots/win-1-download-blocked.png",
+  "chrome-keep.png": "https://www.tseccodecell.com/screenshots/win-2-download-unverified.png",
+  "windows-more-info.png": "https://www.tseccodecell.com/screenshots/win-3-smartscreen-more-info.png",
+  "windows-run.png": "https://www.tseccodecell.com/screenshots/win-4-smartscreen-run-anyway.png",
+  "mac-open.png": "https://cdsassets.apple.com/live/7WUAS350/images/macos/sequoia/macos-sequoia-app-not-opened-could-not-verify-free-from-malware.png",
+  "mac-settings.png": "https://cdsassets.apple.com/live/7WUAS350/images/macos/sequoia/macos-sequoia-system-settings-privacy-and-security-open-app-anyway.png"
+}

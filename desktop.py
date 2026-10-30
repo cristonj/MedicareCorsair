@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tkinter as tk
 from tkinter import messagebox
+from PIL import Image, ImageTk
 import threading
 from http.server import ThreadingHTTPServer
 import webbrowser
@@ -30,16 +31,6 @@ def clipboard_path(browser):
     return f'%LOCALAPPDATA%\\MedicareCorsair\\extension\\{browser.lower()}' + ('\\manifest.json' if browser == 'Firefox' else '')
 
 
-def find_browser(browser):
-    if sys.platform == 'darwin':
-        names = {'Chrome': 'Google Chrome', 'Edge': 'Microsoft Edge', 'Firefox': 'Firefox'}
-        name = names[browser]
-        binary = 'firefox' if browser == 'Firefox' else name
-        candidates = [Path('/Applications') / (name + '.app') / 'Contents' / 'MacOS' / binary, Path.home() / 'Applications' / (name + '.app') / 'Contents' / 'MacOS' / binary]
-        return next((path for path in candidates if path.is_file()), None)
-    folders = [os.environ.get('PROGRAMFILES', ''), os.environ.get('PROGRAMFILES(X86)', ''), os.environ.get('LOCALAPPDATA', '')]
-    suffix = {'Chrome': 'Google/Chrome/Application/chrome.exe', 'Edge': 'Microsoft/Edge/Application/msedge.exe', 'Firefox': 'Mozilla Firefox/firefox.exe'}[browser]
-    return next((Path(folder) / suffix for folder in folders if folder and (Path(folder) / suffix).is_file()), None)
 
 
 class Launcher:
@@ -48,7 +39,7 @@ class Launcher:
         try:
             self.server = ThreadingHTTPServer(('127.0.0.1', 8000), Handler)
         except OSError as error:
-            messagebox.showerror('Cannot start MedicareCorsair', f'Port 8000 is already in use. Close the other app using it and try again.\n\n{error}', parent=root)
+            messagebox.showerror('MedicareCorsair cannot open twice', 'Close the previous MedicareCorsair helper window, then open this version again. Your browser tab can stay open. If no helper is open, another program is using local port 8000.', parent=root)
             root.destroy()
             return
         data.start_scheduler()
@@ -57,10 +48,10 @@ class Launcher:
         self.browser = None
         self.target = None
         root.title('MedicareCorsair')
-        root.geometry('620x620')
-        root.minsize(560, 580)
+        root.geometry(f'{min(1060,root.winfo_screenwidth()-60)}x{min(710,root.winfo_screenheight()-90)}')
+        root.minsize(min(820,root.winfo_screenwidth()-60), min(560,root.winfo_screenheight()-90))
         root.configure(bg=BG)
-        self.body = tk.Frame(root, bg=BG, padx=38, pady=30)
+        self.body = tk.Frame(root, bg=BG, padx=24, pady=18)
         self.body.pack(fill='both', expand=True)
         self.show_welcome()
 
@@ -92,14 +83,9 @@ class Launcher:
         self.button('Google Chrome  →', lambda: self.prepare('Chrome'), True)
         self.button('Microsoft Edge  →', lambda: self.prepare('Edge'))
         self.button('Firefox  →', lambda: self.prepare('Firefox'))
-        self.link('Open MedicareCorsair without setup', lambda: webbrowser.open(SITE))
         tk.Label(self.body, text='Your browser will ask you to add the extension.', bg=BG, fg=MUTED, font=('Segoe UI', 10), wraplength=510, justify='left').pack(anchor='w', side='bottom', pady=(20, 0))
 
     def prepare(self, browser):
-        executable = find_browser(browser)
-        if not executable:
-            messagebox.showerror('Browser not found', f'{browser} was not found. Choose another browser or install it first.', parent=self.root)
-            return
         try:
             target = DEST / browser.lower()
             target.mkdir(parents=True, exist_ok=True)
@@ -114,8 +100,7 @@ class Launcher:
             self.root.clipboard_clear()
             self.root.clipboard_append(clipboard_path(browser))
             self.root.update()
-            address = {'Chrome':'chrome://extensions', 'Edge':'edge://extensions', 'Firefox':'about:debugging#/runtime/this-firefox'}[browser]
-            subprocess.Popen([str(executable), address])
+
         except (OSError, ValueError, tk.TclError) as error:
             messagebox.showerror('Setup could not start', f'Please try again.\n\n{error}', parent=self.root)
             return
@@ -123,54 +108,56 @@ class Launcher:
         self.target = target
         self.show_instructions()
 
+    def copy_text(self, text, notice='Copied. Paste it in the browser.'):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        self.root.update()
+        if hasattr(self, 'notice'): self.notice.configure(text=notice)
+
     def show_instructions(self, step=0):
         self.clear()
+        address={'Edge':'edge://extensions/', 'Chrome':'chrome://extensions/', 'Firefox':'about:debugging#/runtime/this-firefox'}[self.browser]
         guide=json.loads((ROOT/'setup-guides.json').read_text(encoding='utf-8-sig'))[self.browser.lower()]
-        steps=list(guide['install'])
-        if sys.platform == 'darwin':
-            steps += [{'title':'Open Go to Folder', 'text':'In the picker, press Command + Shift + G. A small path box opens.', 'label':'Command + Shift + G', 'kind':'button'}, {'title':'Paste the setup path', 'text':'Press Command + V, then Return. The setup path is already copied.', 'label':'Command + V  →  Return', 'kind':'button'}]
+        tk.Label(self.body,text=f'Add to {self.browser}',bg=BG,fg=INK,font=('Arial',20,'bold')).pack(anchor='w',pady=(10,12))
+        footer='Return to your original MedicareCorsair tab and refresh it. Keep this helper open.'
+        if self.browser=='Firefox':footer+=' Firefox removes temporary add-ons when it closes.'
+        finish=tk.Frame(self.body,bg=BG);finish.pack(side='bottom',fill='x',pady=(8,0))
+        self.notice=tk.Label(finish,text='',bg=BG,fg=GREEN,font=('Arial',10));self.notice.pack(fill='x')
+        tk.Label(finish,text=footer,bg=BG,fg=INK,font=('Arial',11,'bold'),wraplength=max(400,self.root.winfo_width()-80),justify='left').pack(fill='x')
+        tk.Button(finish,text='Choose a different browser',command=self.show_welcome,bg=BG,fg=GREEN,relief='flat',font=('Arial',10,'underline')).pack(anchor='w')
+        columns=tk.Frame(self.body,bg=BG);columns.pack(fill='both',expand=True)
+        picture=tk.Frame(columns,bg=BG);picture.pack(side='left',fill='both',expand=True,padx=(0,20))
+        instructions=tk.Frame(columns,bg=BG,width=330);instructions.pack(side='right',fill='y');instructions.pack_propagate(False)
+        path=ROOT/'assets'/'setup'/f'{self.browser.lower()}-extensions.png'
+        with Image.open(path) as im:
+            self.source_image=im.crop((0,0,im.width,310)) if self.browser=='Firefox' else im.copy()
+        preview=self.source_image.copy();preview.thumbnail((max(250,min(600,self.root.winfo_width()-410)),max(200,min(300,self.root.winfo_height()-330))))
+        self.preview_photo=ImageTk.PhotoImage(preview)
+        tk.Label(picture,image=self.preview_photo,bg='white').pack(anchor='center',expand=True)
+        tk.Label(picture,text='Official example — look for MedicareCorsair, not the sample extension.',bg=BG,fg=MUTED,font=('Arial',10),wraplength=max(260,self.root.winfo_width()-430)).pack(pady=6)
+        tk.Button(picture,text='Enlarge screenshot',command=self.enlarge_screenshot,bg='white',fg=GREEN,relief='flat',font=('Arial',11)).pack()
+        def line(number,title,text):
+            tk.Label(instructions,text=f'{number}. {title}',bg=BG,fg=INK,font=('Arial',13,'bold'),anchor='w',justify='left').pack(fill='x',pady=(10,3))
+            tk.Label(instructions,text=text,bg=BG,fg=INK,font=('Arial',11),wraplength=325,anchor='w',justify='left').pack(fill='x')
+        open_keys='Command+T, Command+V, then Return' if sys.platform=='darwin' else 'Ctrl+T, Ctrl+V, then Enter'
+        line(1,'Open this address',f'Copy the address below. In the same {self.browser} browser, press {open_keys}.')
+        tk.Button(instructions,text='Copy '+address,command=lambda:self.copy_text(address,'Address copied. Paste it in your browser’s address bar.'),bg='white',fg=GREEN,font=('Arial',11,'bold'),relief='solid',bd=1,padx=6,pady=8,wraplength=315).pack(fill='x',pady=6)
+        if self.browser=='Firefox':
+            line(2,'Load Temporary Add-on','Select This Firefox on the left, then Load Temporary Add-on at the top.')
         else:
-            steps += [{'title':'Select the address bar', 'text':'In the picker, press Ctrl + L to select the address bar at the top.', 'label':'Ctrl + L', 'kind':'button'}, {'title':'Paste the setup path', 'text':'Press Ctrl + V, then Enter. The setup path is already copied.', 'label':'Ctrl + V  →  Enter', 'kind':'button'}]
-        steps += [{'title':'Confirm your selection', 'text':'Choose manifest.json and click Open.' if self.browser=='Firefox' else 'Click Select Folder on Windows, or Select on Mac.', 'label':'Open' if self.browser=='Firefox' else 'Select Folder / Select', 'kind':'button'}, {'title':'Check the extension appears', 'text':'Look for MedicareCorsair in the extension list. Then open the website and click Check setup.', 'label':'MedicareCorsair', 'kind':'button'}]
-        item=steps[step]
-        self.title(item['title'], f"Step {step+1} of {len(steps)} · {self.browser}")
-        canvas=tk.Canvas(self.body,width=500,height=100,bg='white',highlightthickness=1,highlightbackground='#c9d7cd')
-        canvas.pack(fill='x',pady=8)
-        canvas.create_rectangle(18,25,365,78,fill='#edf3ee',outline=GREEN,width=2)
-        canvas.create_text(35,51,text=item['label'],anchor='w',fill=INK,font=('Arial',12,'bold'))
-        if item['kind']=='toggle':
-            canvas.create_oval(290,38,340,66,fill=GREEN,outline=GREEN)
-            canvas.create_oval(317,41,338,63,fill='white',outline='white')
-        canvas.create_line(455,50,370,50,fill='#b34d2c',width=4,arrow=tk.LAST)
-        tk.Label(self.body,text='Illustration · browser layouts may vary',bg=BG,fg=MUTED,font=('Arial',9)).pack(anchor='w')
-        tk.Label(self.body,text=item['text'],bg=BG,fg=INK,font=('Arial',12),wraplength=510,justify='left').pack(anchor='w',pady=16)
-        if step<len(steps)-1:
-            self.button('I did this · Next →',lambda:self.show_instructions(step+1),True)
-        else:
-            self.button('Open MedicareCorsair →',self.open_site,True)
-        if step:
-            self.link('← Back',lambda:self.show_instructions(step-1))
-        self.link('Copy setup path again',self.copy_path)
-        self.link('Open official instructions with screenshots',lambda:webbrowser.open(guide['help']))
+            where='bottom-left' if self.browser=='Edge' else 'top-right'
+            line(2,'Developer mode → Load unpacked',f'Turn on Developer mode at the {where}. Then click Load unpacked at the top.')
+        path_keys='Command+Shift+G, Command+V, then Return' if sys.platform=='darwin' else 'Ctrl+L, Ctrl+V, then Enter'
+        confirm='Open if asked' if self.browser=='Firefox' else 'Select' if sys.platform=='darwin' else 'Select Folder'
+        line(3,'Select the setup folder' if self.browser!='Firefox' else 'Select manifest.json',f'Copy the path below. In the picker press {path_keys}. Click {confirm}.')
+        tk.Button(instructions,text='Copy setup path',command=lambda:self.copy_text(clipboard_path(self.browser),'Setup path copied. Paste it into the folder picker.'),bg=GREEN,fg='white',relief='flat',font=('Arial',12,'bold'),pady=9).pack(fill='x',pady=8)
+    def enlarge_screenshot(self):
+        window=tk.Toplevel(self.root);window.title(f'{self.browser} — official screenshot')
+        preview=self.source_image.copy();preview.thumbnail((window.winfo_screenwidth()-80,window.winfo_screenheight()-120))
+        window.photo=ImageTk.PhotoImage(preview)
+        tk.Label(window,image=window.photo).pack()
+        tk.Button(window,text='Close',command=window.destroy,font=('Arial',12),padx=20,pady=8).pack()
 
-    def copy_path(self):
-        try:
-            self.root.clipboard_clear()
-            self.root.clipboard_append(clipboard_path(self.browser))
-            self.root.update()
-            messagebox.showinfo('Copied', 'Folder path copied. Paste it into the folder picker.', parent=self.root)
-        except tk.TclError:
-            messagebox.showerror('Could not copy', f'Choose this path: {self.target}', parent=self.root)
-
-    def open_site(self):
-        executable = find_browser(self.browser)
-        try:
-            if executable:
-                subprocess.Popen([str(executable), SITE])
-            else:
-                webbrowser.open(SITE)
-        except OSError as error:
-            messagebox.showerror('Could not open the website', str(error), parent=self.root)
 
 
 if __name__ == '__main__':

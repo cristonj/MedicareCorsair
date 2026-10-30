@@ -104,6 +104,9 @@ class Handler(SimpleHTTPRequestHandler):
                 if not data.metadata(year): return self.send_json({"states": []})
                 with closing(data.connect(year)) as db: states = [r[0] for r in db.execute("SELECT state FROM regions ORDER BY state")]
                 return self.send_json({"states": states})
+            asset = (ROOT / parsed.path.lstrip('/')).resolve()
+            if parsed.path.startswith('/assets/setup/') and asset.parent == (ROOT/'assets'/'setup').resolve() and asset.is_file() and asset.suffix in {'.png','.webp','.json','.html'}:
+                return super().do_GET()
             # Explicit static allowlist: no datasets, source, or directory listings.
             if parsed.path not in {"/", "/index.html", "/styles.css", "/app.js", "/favicon.svg", "/privacy.html", "/setup-guides.json"}: return self.send_error(404)
             return super().do_GET()

@@ -1,40 +1,193 @@
 {
   "edge": {
     "download": [
-      {"title":"Open Downloads","text":"Press Ctrl + J in Edge.","label":"Downloads","kind":"button"},
-      {"title":"Open the file’s menu","text":"Find MedicareCorsair.exe. Click the three dots beside it.","label":"⋯","kind":"menu"},
-      {"title":"Choose Keep","text":"Choose Keep only for this file from our GitHub release.","label":"Keep","kind":"button"},
-      {"title":"Expand the warning","text":"Click Show more. In some versions, click the small arrow beside Delete instead.","label":"Show more  ▾","kind":"button"},
-      {"title":"Choose Keep anyway","text":"If the warning is about an unfamiliar file and you trust this download, choose Keep anyway. Stop if it reports malware.","label":"Keep anyway","kind":"button"},
-      {"title":"Open the app","text":"Click Open file under MedicareCorsair.exe.","label":"Open file","kind":"button"}
+      {
+        "title": "Open Downloads",
+        "text": "Press Ctrl + J in Edge.",
+        "label": "Downloads",
+        "kind": "button"
+      },
+      {
+        "title": "Open the file’s menu",
+        "text": "Find MedicareCorsair.exe. Click the three dots beside it.",
+        "label": "⋯",
+        "kind": "menu"
+      },
+      {
+        "title": "Choose Keep",
+        "text": "Choose Keep only for this file from our GitHub release.",
+        "label": "Keep",
+        "kind": "button"
+      },
+      {
+        "title": "Expand the warning",
+        "text": "Click Show more. In some versions, click the small arrow beside Delete instead.",
+        "label": "Show more  ▾",
+        "kind": "button"
+      },
+      {
+        "title": "Choose Keep anyway",
+        "text": "If the warning is about an unfamiliar file and you trust this download, choose Keep anyway. Stop if it reports malware.",
+        "label": "Keep anyway",
+        "kind": "button"
+      },
+      {
+        "title": "Open the app",
+        "text": "Click Open file under MedicareCorsair.exe.",
+        "label": "Open file",
+        "kind": "button"
+      }
     ],
     "install": [
-      {"title":"Turn on Developer mode","text":"On the Extensions page we opened, look near the bottom of the left sidebar. Click the switch beside Developer mode so it turns on.","label":"Developer mode","kind":"toggle"},
-      {"title":"Click Load unpacked","text":"Look at the top of the Extensions page. Click Load unpacked.","label":"Load unpacked","kind":"button"}
+      {
+        "title": "Turn on Developer mode",
+        "text": "On the Extensions page, look near the bottom of the left sidebar. Click the switch beside Developer mode so it turns on.",
+        "label": "Developer mode",
+        "kind": "toggle"
+      },
+      {
+        "title": "Click Load unpacked",
+        "text": "Look at the top of the Extensions page. Click Load unpacked.",
+        "label": "Load unpacked",
+        "kind": "button"
+      }
     ],
-    "help":"https://learn.microsoft.com/en-us/microsoft-edge/extensions/getting-started/extension-sideloading"
+    "help": "https://learn.microsoft.com/en-us/microsoft-edge/extensions/getting-started/extension-sideloading",
+    "downloadCards": [
+      {
+        "title": "1. Three dots → Keep",
+        "image": "edge-download-menu.webp",
+        "text": "In Downloads (Ctrl+J), find MedicareCorsair.exe. Click its ⋯ menu, then Keep."
+      },
+      {
+        "title": "2. Show more → Keep anyway",
+        "image": "edge-download-warning.webp",
+        "text": "Expand Show more (or the arrow beside Delete), then Keep anyway."
+      },
+      {
+        "title": "3. Open file → More info → Run anyway",
+        "image": "windows-run.png",
+        "text": "Open MedicareCorsair.exe. If Windows shows a reputation warning, click More info, then Run anyway."
+      }
+    ]
   },
   "chrome": {
     "download": [
-      {"title":"Open Downloads","text":"Press Ctrl + J in Chrome.","label":"Downloads","kind":"button"},
-      {"title":"Review the download","text":"Find MedicareCorsair.exe and click its warning or menu. If it is marked unfamiliar and you trust this GitHub download, choose the option to keep it. Stop if it reports malware.","label":"MedicareCorsair.exe  ⋯","kind":"menu"},
-      {"title":"Open the app","text":"Once the download finishes, click MedicareCorsair.exe.","label":"MedicareCorsair.exe","kind":"button"}
+      {
+        "title": "Open Downloads",
+        "text": "Press Ctrl + J in Chrome.",
+        "label": "Downloads",
+        "kind": "button"
+      },
+      {
+        "title": "Review the download",
+        "text": "Find MedicareCorsair.exe and click its warning or menu. If it is marked unfamiliar and you trust this GitHub download, choose the option to keep it. Stop if it reports malware.",
+        "label": "MedicareCorsair.exe  ⋯",
+        "kind": "menu"
+      },
+      {
+        "title": "Open the app",
+        "text": "Once the download finishes, click MedicareCorsair.exe.",
+        "label": "MedicareCorsair.exe",
+        "kind": "button"
+      }
     ],
     "install": [
-      {"title":"Turn on Developer mode","text":"On the Extensions page we opened, look in the top-right corner. Click the switch beside Developer mode so it turns on.","label":"Developer mode","kind":"toggle"},
-      {"title":"Click Load unpacked","text":"A row of buttons appears near the top-left. Click Load unpacked.","label":"Load unpacked","kind":"button"}
+      {
+        "title": "Turn on Developer mode",
+        "text": "On the Extensions page, look in the top-right corner. Click the switch beside Developer mode so it turns on.",
+        "label": "Developer mode",
+        "kind": "toggle"
+      },
+      {
+        "title": "Click Load unpacked",
+        "text": "A row of buttons appears near the top-left. Click Load unpacked.",
+        "label": "Load unpacked",
+        "kind": "button"
+      }
     ],
-    "help":"https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked"
+    "help": "https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked",
+    "downloadCards": [
+      {
+        "title": "1. Click the arrow beside the file",
+        "image": "chrome-download.png",
+        "text": "Open Downloads (Ctrl+J). Click the arrow beside MedicareCorsair.exe if it was blocked as unfamiliar."
+      },
+      {
+        "title": "2. Review the warning",
+        "image": "chrome-keep.png",
+        "text": "For an unfamiliar file you trust, choose Download suspicious file or Download unverified file, matching your warning. Do not turn off Safe Browsing."
+      },
+      {
+        "title": "3. Open file → More info → Run anyway",
+        "image": "windows-run.png",
+        "text": "Open MedicareCorsair.exe. If Windows shows a reputation warning, click More info, then Run anyway."
+      }
+    ]
   },
   "firefox": {
     "download": [
-      {"title":"Open Downloads","text":"Click the download arrow in the Firefox toolbar.","label":"Downloads ↓","kind":"button"},
-      {"title":"Review and open the file","text":"Find MedicareCorsair.exe. Review any warning and open only if you trust this GitHub download. Stop if it reports malware.","label":"MedicareCorsair.exe","kind":"button"}
+      {
+        "title": "Open Downloads",
+        "text": "Click the download arrow in the Firefox toolbar.",
+        "label": "Downloads ↓",
+        "kind": "button"
+      },
+      {
+        "title": "Review and open the file",
+        "text": "Find MedicareCorsair.exe. Review any warning and open only if you trust this GitHub download. Stop if it reports malware.",
+        "label": "MedicareCorsair.exe",
+        "kind": "button"
+      }
     ],
     "install": [
-      {"title":"Choose This Firefox","text":"On the page we opened, click This Firefox in the left sidebar if it is not already selected.","label":"This Firefox","kind":"button"},
-      {"title":"Load the add-on","text":"Click Load Temporary Add-on near the top of the page.","label":"Load Temporary Add-on","kind":"button"}
+      {
+        "title": "Choose This Firefox",
+        "text": "On the debugging page, click This Firefox in the left sidebar if it is not already selected.",
+        "label": "This Firefox",
+        "kind": "button"
+      },
+      {
+        "title": "Load the add-on",
+        "text": "Click Load Temporary Add-on near the top of the page.",
+        "label": "Load Temporary Add-on",
+        "kind": "button"
+      }
     ],
-    "help":"https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/"
-  }
+    "help": "https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/",
+    "downloadCards": [
+      {
+        "title": "1. Open Downloads",
+        "image": "firefox-download.png",
+        "text": "Click the download arrow. For an unfamiliar-file warning, click the arrow beside MedicareCorsair.exe to review it."
+      },
+      {
+        "title": "2. Review before opening",
+        "image": "firefox-confirm.png",
+        "text": "Only for an unfamiliar file you trust, choose Allow Download or Open. Mozilla’s example is an older Firefox layout."
+      },
+      {
+        "title": "3. Open file → More info → Run anyway",
+        "image": "windows-run.png",
+        "text": "If Windows shows a reputation warning, click More info, then Run anyway. Temporary Firefox extensions are removed when Firefox closes."
+      }
+    ]
+  },
+  "macCards": [
+    {
+      "title": "1. Open the ZIP, then the app",
+      "image": "mac-open.png",
+      "text": "Open MedicareCorsair-macOS.zip (or the Intel version). Open MedicareCorsair.app. This unsigned app may be blocked."
+    },
+    {
+      "title": "2. Review macOS permission",
+      "image": "mac-settings.png",
+      "text": "If you trust this GitHub download: Apple menu → System Settings → Privacy & Security → Open Anyway. Confirm Open."
+    },
+    {
+      "title": "3. Choose your browser in the app",
+      "image": "edge-extensions.png",
+      "text": "Use Chrome, Edge, or Firefox. The helper shows its matching extension screenshot. Safari is not supported."
+    }
+  ]
 }
