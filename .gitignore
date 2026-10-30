@@ -8,6 +8,10 @@ data/*
 Thumbs.db
 test-results/
 node_modules/
+build/
+dist/
+netlify-public/
+*.spec
 tmp/
 *.traineddata
 *.traineddata.gz

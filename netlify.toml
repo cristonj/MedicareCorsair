@@ -1,0 +1,16 @@
+[build]
+  # Publish only browser assets, never the repository, data, or backend source.
+  command = "mkdir -p netlify-public && cp index.html styles.css app.js favicon.svg privacy.html netlify-public/"
+  publish = "netlify-public"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+
+# The current Python server only listens on localhost. Once a production API
+# is available, add a same-origin /api/* proxy to its HTTPS address here.
+# The browser extension also needs its localhost URLs updated for the site.

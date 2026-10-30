@@ -13,9 +13,9 @@ document.querySelector('#collect').addEventListener('click',async()=>{
 });
 document.querySelector('#send').addEventListener('click',async()=>{
  const capture=await saved();if(!capture)return;
- const tabs=await chrome.tabs.query({url:['http://127.0.0.1:8000/*','http://localhost:8000/*']});
+ const tabs=await chrome.tabs.query({url:['https://medicarecorsair.netlify.app/*','http://127.0.0.1:8000/*','http://localhost:8000/*']});
  if(tabs.length){try{await chrome.tabs.sendMessage(tabs[0].id,{type:'corsair-capture',capture});await chrome.tabs.update(tabs[0].id,{active:true});status.textContent='Sent. Review the amounts in MedicareCorsair.';}catch{status.textContent='Refresh the MedicareCorsair tab, then send again.';}}
- else await chrome.tabs.create({url:'http://127.0.0.1:8000/#medicare-import'});
+ else await chrome.tabs.create({url:'https://medicarecorsair.netlify.app/#medicare-import'});
 });
 document.querySelector('#download').addEventListener('click',async()=>{const capture=await saved();if(!capture)return;const url=URL.createObjectURL(new Blob([JSON.stringify(capture)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='medicare-results.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 chrome.storage.onChanged.addListener(changes=>{if(changes.captureProgress)status.textContent=changes.captureProgress.newValue;});
