@@ -42,7 +42,8 @@ async function collectMedicareResults() {
   const unique=new Set(documents.flatMap(d=>[...d.text.matchAll(/Plan\s*ID\s*:\s*([SHR]\d{4}-\d{3}-\d{1,3})/gi)].map(m=>m[1])));
   if(unique.size!==expected)throw new Error(`Read ${unique.size} of ${expected} plans. Use the PDF walkthrough to complete the comparison.`);
   const capture={documents,expected,source_url:location.href,captured_at:new Date().toISOString()};
-  await extensionApi.runtime.sendMessage({type:'captureComplete',capture});
+  const delivered=await extensionApi.runtime.sendMessage({type:'captureComplete',capture});
+  if(!delivered?.ok)throw new Error(delivered?.error || 'Could not send results. Open MedicareCorsair and try again.');
   return {count:expected,pages:documents.length};
   } finally {globalThis.__medicareCorsairCollecting=false;}
 }

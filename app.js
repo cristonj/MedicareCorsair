@@ -1,7 +1,7 @@
 'use strict';
 const $ = selector => document.querySelector(selector);
 const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value);
-const storageKey = 'medicarecorsair-profile-v2';
+try { localStorage.removeItem('medicarecorsair-profile-v2'); } catch {}
 const defaults = () => ({ state:'', zip:'', medications:[], coverage:'', goals:[], currentPlan:'', pharmacy:'', providers:'', assistance:'unsure', otherCoverage:'unsure' });
 const profile = defaults();
 let currentStatus = null, comparison = null, chosen = null, quotes = {}, compareVersion = 0, searchVersion = 0, sourceIdentity = null;
@@ -11,7 +11,10 @@ let setupStep=0,guideStep=0,guideMode='extension',guidePage=1,queuedCapture=null
 const node = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
 const external = (text, url, className = '') => { const el = node('a', className, text); el.href = url; el.target = '_blank'; el.rel = 'noopener noreferrer'; return el; };
 async function api(path, body) {
-  const response = await fetch(path, body === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const target = location.origin === 'https://medicarecorsair.netlify.app' && path.startsWith('/api/') ? `http://127.0.0.1:8000${path}` : path;
+  let response;
+  try { response = await fetch(target, body === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+  catch { throw new Error('Open the MedicareCorsair desktop app and keep it open, then try again.'); }
   let result;
   try { result = await response.json(); } catch { throw new Error('Start the app with python server.py to connect its data service.'); }
   if (!response.ok) throw new Error(result.error || 'The request could not be completed.');
@@ -19,21 +22,8 @@ async function api(path, body) {
 }
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; setTimeout(() => { $('#toast').hidden = true; }, 4500); }
 function fingerprint() { return JSON.stringify(['context-v3',currentStatus?.enrollment.year, currentStatus?.source?.url, currentStatus?.source?.modified, profile.state,profile.zip,profile.coverage,profile.assistance,profile.pharmacy, profile.medications.map(m => [m.rxcui, m.quantity, m.days]).sort()]); }
-function save() {
-  try { if ($('#remember').checked) localStorage.setItem(storageKey, JSON.stringify({ profile, quotes })); else localStorage.removeItem(storageKey); }
-  catch { toast('Browser storage is unavailable. Your entries will stay here until you close or reload the page.'); }
-}
-function restore() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    if (saved?.profile && typeof saved.profile.state === 'string' && Array.isArray(saved.profile.medications)) {
-      profile.medications = saved.profile.medications.filter(m => /^\d{1,10}$/.test(m.rxcui) && typeof m.name === 'string' && Number.isFinite(m.quantity) && m.quantity > 0 && [30,60,90].includes(m.days)).slice(0,30);
-      for(const key of ['zip','coverage','currentPlan','pharmacy','providers','assistance','otherCoverage'])if(typeof saved.profile[key]==='string')profile[key]=saved.profile[key].slice(0,500);
-      profile.goals=Array.isArray(saved.profile.goals)?saved.profile.goals.filter(g=>typeof g==='string').slice(0,5):[];
-      pendingSavedState = saved.profile.state; quotes = saved.quotes && typeof saved.quotes === 'object' ? saved.quotes : {}; $('#remember').checked = true;
-    }
-  } catch { /* Invalid saved data never stops the app. */ }
-}
+function save() {}
+function restore() {}
 function supportedCoverage(){return ['original','advantage'].includes(profile.coverage);}
 function updateButton() { $('#compare').disabled = !profile.state || !supportedCoverage() || !currentStatus?.source || currentStatus.source.year !== currentStatus.enrollment.year; $('#compare').textContent=profile.coverage==='advantage'?'Get health & drug prices':'Compare plans'; }
 function renderMeds() {
@@ -89,7 +79,7 @@ async function refreshStatus() {
       if (status.source && profile.state && (hadSource || profile.medications.length)) await runComparison();
     }
     updateButton();
-  } catch (error) { $('#sync-summary').textContent = 'Data service unavailable'; $('#sync-title').textContent = 'Data service unavailable'; $('#sync-description').textContent = error.message; $('#refresh').disabled = false; }
+  } catch (error) { $('#sync-summary').textContent = 'Open the desktop app'; $('#sync-title').textContent = 'Data service unavailable'; $('#sync-description').textContent = error.message; $('#refresh').disabled = false; }
 }
 $('#state').addEventListener('change', () => { profile.state = $('#state').value; updateButton(); changed(); });
 $('#search-form').addEventListener('submit', async event => {
@@ -113,7 +103,7 @@ $('#add-form').addEventListener('submit', event => {
   profile.medications.push({ ...chosen, quantity: Number($('#quantity').value), days: Number($('#days').value) });
   chosen = null; $('#add-form').hidden = true; $('#drug-search').value = ''; $('#search-message').textContent = ''; renderMeds(); changed();
 });
-$('#remember').addEventListener('change', save);
+
 $('#compare').addEventListener('click',()=>profile.coverage==='advantage'?openCapture():runComparison());
 async function runComparison() {
   if (!profile.state || !currentStatus?.source || !supportedCoverage()) return;
@@ -231,13 +221,9 @@ $('#sort').addEventListener('change', renderPlans); $('#covered-only').addEventL
 $('#refresh').addEventListener('click', async () => { try { await api('/api/sync', {}); toast('Checking CMS for newer data…'); setTimeout(refreshStatus, 1000); } catch (error) { toast(error.message); } });
 $('#reset').addEventListener('click', () => {
   if (!confirm('Clear your medication list, estimates, and saved information from this browser?')) return;
-  compareVersion++; searchVersion++; Object.assign(profile,defaults()); quotes = {}; comparison = null; chosen = null; pendingSavedState = ''; $('#remember').checked = false; save(); $('#state').value = ''; $('#comparison').hidden = true; $('#results-empty').hidden = false; $('#add-form').hidden = true; $('#drug-results').replaceChildren(); $('#drug-search').value = ''; $('#search-message').textContent = ''; $('#profile-message').textContent = ''; renderMeds();setupStep=0;showSetup();toast('Your information has been cleared.');
+  compareVersion++; searchVersion++; Object.assign(profile,defaults()); quotes = {}; comparison = null; chosen = null; pendingSavedState = ''; save(); $('#state').value = ''; $('#comparison').hidden = true; $('#results-empty').hidden = false; $('#add-form').hidden = true; $('#drug-results').replaceChildren(); $('#drug-search').value = ''; $('#search-message').textContent = ''; $('#profile-message').textContent = ''; renderMeds();setupStep=0;showSetup();toast('Your information has been cleared.');
 });
-$('#print').addEventListener('click', () => window.print());
-$('#export').addEventListener('click', () => {
-  const lines = ['MedicareCorsair comparison checklist', `Coverage year: ${currentStatus?.enrollment.year || 'Pending'}`, `Current coverage: ${profile.coverage || 'Not sure'}`, `Current plan: ${profile.currentPlan || 'Not entered'}`, `Priorities: ${profile.goals.join(', ') || 'Not entered'}`, `ZIP / state: ${profile.zip} / ${profile.state}`, `Pharmacies: ${profile.pharmacy || 'Not entered'}`, `Doctors / hospitals: ${profile.providers || 'Not entered'}`, `Help with costs: ${profile.assistance}`, `Other employer / retiree coverage: ${profile.otherCoverage}`, '', 'MEDICATIONS', ...profile.medications.map(m => `${m.name} | RxCUI ${m.rxcui} | ${m.quantity} units / ${m.days} days`), '', 'MEDICARE PLAN FINDER', `https://www.medicare.gov/plan-compare/?year=${currentStatus?.enrollment.year || ''}&lang=en`, '', ...(comparison?.plans || []).map(p => `${p.name} (${p.id}) | ${currentQuote(p.id) ? 'Drug + premium estimate ' + money(quotedTotal(p)) : 'Annual total unknown'}${Number.isFinite(p.medical_max) ? ' | In-network medical limit ' + money(p.medical_max) : ''}`), '', `CMS source: ${comparison?.source.url || currentStatus?.source?.url || 'Not loaded'}`, 'Free counseling: https://www.shiphelp.org/'];
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }), url = URL.createObjectURL(blob), link = node('a'); link.href = url; link.download = 'MedicareCorsair-checklist.txt'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
+
 $('#sync-summary').addEventListener('click', () => { $('#sources').open = true; });
 // Short intake and assisted capture.
 function field(label,key,{options,placeholder=''}={}) {
@@ -292,10 +278,6 @@ $('#zip').addEventListener('change',()=>{profile.zip=$('#zip').value.trim();chan
 $('#pharmacy').addEventListener('change',()=>{profile.pharmacy=$('#pharmacy').value.trim();changed();});
 $('#zip').addEventListener('input',()=>{profile.zip=$('#zip').value.trim();save();});
 $('#pharmacy').addEventListener('input',()=>{profile.pharmacy=$('#pharmacy').value.trim();save();});
-function copyChecklist(){
- const lines=[`Coverage: ${currentStatus?.enrollment.year}`,`ZIP: ${profile.zip}`,`Plan type: ${profile.coverage==='advantage'?'Medicare Advantage with drug coverage':'Separate drug plan (Part D)'}`,`Help with costs: ${profile.assistance}`,`Pharmacies: ${profile.pharmacy}`,...profile.medications.map(m=>`${m.name}: ${m.quantity} units every ${m.days} days`),profile.providers?`Keep these providers: ${profile.providers}`:''];
- return navigator.clipboard.writeText(lines.filter(Boolean).join('\n')).then(()=>toast('Your details were copied.')).catch(()=>toast('Clipboard unavailable. Use Download list in your dashboard.'));
-}
 function renderGuide(){
  const area=$('#guide-content');area.replaceChildren();$('#guide-back').hidden=guideStep===0;$('#guide-next').hidden=false;$('#guide-next').textContent='Continue';$('#import-load').hidden=true;
  const heading=text=>area.append(node('h3','guide-title',text));
@@ -307,17 +289,17 @@ function renderGuide(){
   action('PDF walkthrough',()=>{guideMode='pdf';guideStep=1;guidePage=1;renderGuide();});
   action('I already have result files',()=>{guideMode='pdf';guideStep=4;renderGuide();});
  }else if(guideStep===1&&guideMode==='extension'){
-  heading('Add the extension once.');
-  area.append(external('Download extension ZIP ↓','/extension.zip','button secondary'),node('p','hint','Unzip it. In Chrome or Edge → Extensions → Developer mode → Load unpacked → choose the folder. Use MedicareCorsair in that same browser.'));
-  $('#guide-next').textContent='Extension added';
+  heading('Your extension is ready.');
+  area.append(node('p','hint','Use Medicare and MedicareCorsair in this same browser.'));
+  $('#guide-next').textContent='Continue';
  }else if((guideStep===1&&guideMode==='pdf')||(guideStep===2&&guideMode==='extension')){
   heading('Set up your Medicare comparison.');
   area.append(node('p','hint',`${year} coverage · ${profile.coverage==='advantage'?'Medicare Advantage with drug coverage':'Drug plan (Part D)'} · ZIP ${profile.zip||'enter your ZIP'}`));
-  area.append(external('Open Medicare Plan Finder ↗',$('#finder-source').href,'button primary'));action('Copy my details',copyChecklist);
+  area.append(external('Open Medicare Plan Finder ↗',$('#finder-source').href,'button primary'));
   area.append(node('p','hint',`Add your medications, help with costs, and pharmacies.${profile.coverage==='advantage'?' Add the doctors and hospitals you want to keep, too.':''}`));
   $('#guide-next').textContent='Medicare is showing page 1';
  }else if(guideMode==='extension'){
-  heading('Collect all pages in one step.');area.append(node('p','hint','In the Medicare tab, open MedicareCorsair’s extension → Collect all result pages → Send to MedicareCorsair.'));
+  heading('Collect all pages in one step.');area.append(node('p','hint','In the Medicare tab, open MedicareCorsair’s extension → Collect and send all pages.'));
   action('Use PDFs instead',()=>{guideMode='pdf';guideStep=2;renderGuide();});$('#guide-next').hidden=true;
  }else if(guideStep===2){
   heading(`Save result page ${guidePage}.`);area.append(node('p','hint',`${guidePage>1?'In Medicare, click Next. Then use the printer icon':'Use Medicare’s printer icon'} → Save as PDF → save all print pages as “Medicare-page-${guidePage}.pdf”.`));

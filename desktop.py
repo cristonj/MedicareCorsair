@@ -7,7 +7,11 @@ import subprocess
 import sys
 import tkinter as tk
 from tkinter import messagebox
+import threading
+from http.server import ThreadingHTTPServer
 import webbrowser
+from backend import data
+from server import Handler
 
 SITE = 'https://medicarecorsair.netlify.app/'
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
@@ -33,6 +37,15 @@ def find_browser(browser):
 class Launcher:
     def __init__(self, root):
         self.root = root
+        try:
+            self.server = ThreadingHTTPServer(('127.0.0.1', 8000), Handler)
+        except OSError as error:
+            messagebox.showerror('Cannot start MedicareCorsair', f'Port 8000 is already in use. Close the other app using it and try again.\n\n{error}', parent=root)
+            root.destroy()
+            return
+        data.start_scheduler()
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        root.protocol('WM_DELETE_WINDOW', self.close)
         self.browser = None
         self.target = None
         root.title('MedicareCorsair')
@@ -42,6 +55,11 @@ class Launcher:
         self.body = tk.Frame(root, bg=BG, padx=38, pady=30)
         self.body.pack(fill='both', expand=True)
         self.show_welcome()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.root.destroy()
 
     def clear(self):
         for child in self.body.winfo_children():
@@ -62,7 +80,7 @@ class Launcher:
 
     def show_welcome(self):
         self.clear()
-        self.title('Let’s get started.', 'Choose the browser you use. We’ll help you add the extension once.')
+        self.title('Let’s get started.', 'Keep this window open. Choose your browser to add the extension.')
         self.button('Google Chrome  →', lambda: self.prepare('Chrome'), True)
         self.button('Microsoft Edge  →', lambda: self.prepare('Edge'))
         self.button('Firefox  →', lambda: self.prepare('Firefox'))

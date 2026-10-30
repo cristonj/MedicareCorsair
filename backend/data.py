@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import sys
 import threading
 import time
 import urllib.request
@@ -21,7 +22,8 @@ from datetime import datetime, timezone
 from .calendar import enrollment_context
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = Path(os.environ.get("CORSAIR_DATA_DIR", str(ROOT / "data")))
+_default_data = (Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'MedicareCorsair' / 'data' if sys.platform == 'win32' else Path.home() / 'Library' / 'Application Support' / 'MedicareCorsair' / 'data') if getattr(sys, 'frozen', False) else ROOT / 'data'
+DATA = Path(os.environ.get("CORSAIR_DATA_DIR", str(_default_data)))
 CATALOG = "https://data.cms.gov/data.json"
 CMS_PAGE = "https://data.cms.gov/provider-summary-by-type-of-service/medicare-part-d-prescribers/monthly-prescription-drug-plan-formulary-and-pharmacy-network-information"
 TITLE = "Monthly Prescription Drug Plan Formulary and Pharmacy Network Information"

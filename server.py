@@ -56,6 +56,10 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
     def end_headers(self):
+        if self.headers.get('Origin') == 'https://medicarecorsair.netlify.app':
+            self.send_header('Access-Control-Allow-Origin', 'https://medicarecorsair.netlify.app')
+            self.send_header('Vary', 'Origin')
+            self.send_header('Access-Control-Allow-Private-Network', 'true')
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
@@ -74,6 +78,14 @@ class Handler(SimpleHTTPRequestHandler):
         # Protect the loopback service from DNS rebinding.
         host = self.headers.get("Host", "")
         return host in {f"localhost:{self.server.server_port}", f"127.0.0.1:{self.server.server_port}"}
+
+    def do_OPTIONS(self):
+        if not self.allowed_host() or self.headers.get('Origin') != 'https://medicarecorsair.netlify.app': return self.send_json({'error':'Cross-origin request rejected'},403)
+        if not self.path.startswith('/api/'): return self.send_error(404)
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Methods','GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers','Content-Type')
+        self.end_headers()
 
     def do_GET(self):
         if not self.allowed_host(): return self.send_json({"error": "Unrecognized host"}, 403)
@@ -101,7 +113,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if not self.allowed_host(): return self.send_json({"error": "Unrecognized host"}, 403)
         origin = self.headers.get("Origin")
-        if origin and origin not in {f"http://localhost:{self.server.server_port}", f"http://127.0.0.1:{self.server.server_port}"}: return self.send_json({"error": "Cross-origin request rejected"}, 403)
+        if origin and origin not in {f"http://localhost:{self.server.server_port}", f"http://127.0.0.1:{self.server.server_port}", 'https://medicarecorsair.netlify.app'}: return self.send_json({"error": "Cross-origin request rejected"}, 403)
         if self.headers.get("Content-Type", "").split(";")[0] != "application/json": return self.send_json({"error": "Use application/json"}, 415)
         try:
             length = int(self.headers.get("Content-Length", 0))

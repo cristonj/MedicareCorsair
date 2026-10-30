@@ -8,7 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
+import io
 from pathlib import Path
 from . import data
 from .calendar import enrollment_context
@@ -34,31 +34,29 @@ def pdf_text(content):
     with pdfium.PdfDocument(content) as pdf:
         if not 1 <= len(pdf) <= 20: raise ValueError('Use a PDF of 1–20 pages.')
         texts, images, positions = [], [], []
-        with tempfile.TemporaryDirectory(prefix='corsair-import-') as folder:
-            for index in range(len(pdf)):
-                with closing(pdf[index]) as page:
-                    with closing(page.get_textpage()) as textpage: text = textpage.get_text_range()
-                    texts.append(text)
-                    if len(text.strip()) < 40:
-                        # Bound both dimensions before rasterizing untrusted pages.
-                        w,h=page.get_size()
-                        scale=min(2.5,2200/max(w,h))
-                        if min(w,h) <= 0: raise ValueError('Invalid PDF page size.')
-                        bitmap=page.render(scale=scale)
-                        try:
-                            path=Path(folder)/f'page-{index}.png'
-                            bitmap.to_pil().save(path)
-                        finally: bitmap.close()
-                        images.append(str(path)); positions.append(index)
-            if images:
-                binary=shutil.which('node')
-                if not binary: raise ValueError('Image PDFs need Node.js for local OCR.')
-                try:
-                    result=subprocess.run([binary,str(data.ROOT/'backend'/'ocr.cjs'),*images],capture_output=True,text=True,encoding='utf-8',timeout=240,check=True,cwd=data.ROOT)
-                    ocr=json.loads(result.stdout)
-                except (subprocess.SubprocessError,ValueError): raise ValueError('Local OCR could not read this PDF. Try copying the result-page text instead.')
-                for index,page in zip(positions,ocr): texts[index]=page['text']
-            return '\n'.join(texts), bool(images)
+        for index in range(len(pdf)):
+            with closing(pdf[index]) as page:
+                with closing(page.get_textpage()) as textpage: text = textpage.get_text_range()
+                texts.append(text)
+                if len(text.strip()) < 40:
+                    w,h=page.get_size()
+                    if min(w,h) <= 0: raise ValueError('Invalid PDF page size.')
+                    bitmap=page.render(scale=min(2.5,2200/max(w,h)))
+                    try:
+                        buffer=io.BytesIO()
+                        bitmap.to_pil().save(buffer,format='PNG')
+                        images.append(base64.b64encode(buffer.getvalue()).decode('ascii'))
+                    finally: bitmap.close()
+                    positions.append(index)
+        if images:
+            binary = str(data.ROOT/'runtime'/('node.exe' if sys.platform=='win32' else 'node')) if getattr(sys,'frozen',False) else shutil.which('node')
+            if not binary: raise ValueError('Image PDFs need Node.js for local OCR.')
+            try:
+                result=subprocess.run([binary,str(data.ROOT/'backend'/'ocr.cjs')],input=json.dumps(images),capture_output=True,text=True,encoding='utf-8',timeout=240,check=True,cwd=data.ROOT,creationflags=subprocess.CREATE_NO_WINDOW if sys.platform=='win32' else 0)
+                ocr=json.loads(result.stdout)
+            except (subprocess.SubprocessError,ValueError,OSError): raise ValueError('Local OCR could not read this PDF. Try copying the result-page text instead.')
+            for index,page in zip(positions,ocr): texts[index]=page['text']
+        return '\n'.join(texts), bool(images)
 
 
 def parse_quotes(text, year):
