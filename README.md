@@ -23,9 +23,13 @@ A standalone desktop wrapper is not needed for these public data connections. Th
 
 ## Windows launcher
 
-The single-file Windows launcher opens `https://medicarecorsair.netlify.app/` and guides a one-time unpacked extension setup in Chrome or Edge. It copies the extension to the user's Windows profile and places that folder path on the clipboard; the user turns on Developer mode and chooses Load unpacked. This is a development distribution, not a store installation. The hosted API must be deployed separately for the website to function.
+The Windows launcher and macOS app open `https://medicarecorsair.netlify.app/` and guide unpacked extension setup in Chrome or Edge. Firefox uses a temporary add-on that must be reloaded after each Firefox restart. Safari is not supported. The launcher copies the extension to the user's profile and places its path on the clipboard; the user completes browser setup. These are development distributions, not store installations. The hosted API must be deployed separately for the website to function.
 
 To rebuild on Windows, create the virtual environment, install `pyinstaller==6.22.3` in it, then run `./build-windows.ps1`. The resulting executable is `dist/MedicareCorsair.exe`.
+
+The desktop workflow can be run manually to download Windows and macOS build artifacts. Pushing a version tag such as `v1.0.0` also creates a GitHub release with both builds and their SHA-256 checksums. The Windows executable is unsigned, and the macOS app is unsigned and not notarized. The extension requires developer-mode setup; Firefox's temporary installation is removed when the browser closes. The macOS and Firefox flows require testing on their target platforms.
+
+The website requires the extension before displaying the form. It detects the extension in the current browser, rather than verifying execution of the EXE. The download button points to the latest GitHub release asset, so a version-tag release must be published before that link can work. After loading the extension unpacked, reload the website or select Check setup. The hosted API is still required for comparisons.
 
 ## What works
 

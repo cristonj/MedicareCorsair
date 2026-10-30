@@ -12,3 +12,14 @@ test('collects every page, starting from a later page',async()=>{const f=fixture
 test('does not deliver partial data when pagination stalls',async()=>{const f=fixture({stuck:true});await assert.rejects(f.run(),/did not load/);assert.equal(f.captures.length,0);});
 test('does not deliver partial data when next-page control is missing',async()=>{const f=fixture({noNext:true});await assert.rejects(f.run(),/next-page control/);assert.equal(f.captures.length,0);});
 test('extension access is confined to the active tab and dashboard',()=>{const manifest=JSON.parse(fs.readFileSync('extension/manifest.json','utf8'));assert.deepEqual(manifest.host_permissions,['http://127.0.0.1:8000/*','http://localhost:8000/*','https://medicarecorsair.netlify.app/*']);assert(!manifest.permissions.includes('cookies'));assert(!manifest.permissions.includes('webRequest'));});
+
+test('dashboard handshake announces extension without exposing a saved capture',async()=>{
+ const handlers={};const messages=[];const window={postMessage:(message,origin)=>messages.push({message,origin}),addEventListener:(type,fn)=>{handlers[type]=fn;}};
+ const runtime={onMessage:{addListener:()=>{}},sendMessage:async()=>{throw new Error('unexpected capture access');}};
+ const context=vm.createContext({window,location:{origin:'https://medicarecorsair.netlify.app',hash:''},chrome:{runtime}});
+ vm.runInContext(fs.readFileSync('extension/bridge.js','utf8'),context);
+ await handlers.message({source:window,origin:'https://medicarecorsair.netlify.app',data:{type:'medicarecorsair-ready'}});
+ assert.equal(messages.length,1);assert.equal(messages[0].message.type,'medicarecorsair-extension-ready');
+ await handlers.message({source:window,origin:'https://other.example',data:{type:'medicarecorsair-ready'}});
+ assert.equal(messages.length,1);
+});

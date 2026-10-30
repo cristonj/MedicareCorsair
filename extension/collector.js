@@ -1,3 +1,4 @@
+var extensionApi = globalThis.browser || globalThis.chrome;
 /* Visible-page collection only. Never reads cookies, storage, or network headers. */
 async function collectMedicareResults() {
   if (location.origin !== 'https://www.medicare.gov' || !location.href.includes('/plan-compare/') || !location.hash.includes('search-results')) throw new Error('Open the Medicare plan results page first.');
@@ -30,7 +31,7 @@ async function collectMedicareResults() {
     if(signatures.has(current.signature))throw new Error('Medicare did not advance to a new page. Collection stopped.');
     signatures.add(current.signature);expected=current.progress[2];
     documents.push({text:current.text});
-    await chrome.runtime.sendMessage({type:'captureProgress',value:`Read ${current.progress[1]} of ${expected} plans`});
+    await extensionApi.runtime.sendMessage({type:'captureProgress',value:`Read ${current.progress[1]} of ${expected} plans`});
     if(current.progress[1]>=expected)break;
     const next=[...document.querySelectorAll('a,button')].find(el=>visible(el) && /next page/i.test(el.getAttribute('aria-label')||'') && el.getAttribute('aria-disabled')!=='true' && !el.disabled);
     if(!next)throw new Error('The next-page control was not found. Use the PDF walkthrough.');
@@ -41,7 +42,7 @@ async function collectMedicareResults() {
   const unique=new Set(documents.flatMap(d=>[...d.text.matchAll(/Plan\s*ID\s*:\s*([SHR]\d{4}-\d{3}-\d{1,3})/gi)].map(m=>m[1])));
   if(unique.size!==expected)throw new Error(`Read ${unique.size} of ${expected} plans. Use the PDF walkthrough to complete the comparison.`);
   const capture={documents,expected,source_url:location.href,captured_at:new Date().toISOString()};
-  await chrome.runtime.sendMessage({type:'captureComplete',capture});
+  await extensionApi.runtime.sendMessage({type:'captureComplete',capture});
   return {count:expected,pages:documents.length};
   } finally {globalThis.__medicareCorsairCollecting=false;}
 }

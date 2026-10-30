@@ -393,5 +393,10 @@ window.addEventListener('message',event=>{
  if(!supportedCoverage()||!profile.state||!profile.medications.length){queuedCapture=capture;toast('Your Medicare results arrived. Finish your setup and medication list to review them.');return;}
  readDocuments({documents:capture.documents});
 });
+window.addEventListener('message',event=>{
+ if(event.source!==window||event.origin!==location.origin||event.data?.type!=='medicarecorsair-extension-ready')return;
+ $('#install-view').hidden=true;$('#app-flow').hidden=false;
+});
+$('#check-install').addEventListener('click',()=>location.reload());
 restore();renderMeds();if(profile.coverage)showWorkspace();else showSetup();refreshStatus();setInterval(refreshStatus,30000);
 window.postMessage({type:'medicarecorsair-ready'},location.origin);

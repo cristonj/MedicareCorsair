@@ -1,0 +1,87 @@
+name: Desktop builds
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test
+        run: |
+          python -m unittest discover -s tests -v
+          node --test tests/test_extension.cjs
+      - name: Install build dependency
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python.exe -m pip install pyinstaller==6.22.3
+      - name: Build executable
+        shell: pwsh
+        run: ./build-windows.ps1
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Algorithm SHA256 dist/MedicareCorsair.exe).Hash.ToLowerInvariant()
+          "$hash  MedicareCorsair.exe" | Set-Content -Encoding ascii dist/MedicareCorsair.exe.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MedicareCorsair-Windows
+          path: |
+            dist/MedicareCorsair.exe
+            dist/MedicareCorsair.exe.sha256
+          if-no-files-found: error
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build dependency
+        run: python -m pip install pyinstaller==6.22.3
+      - name: Build macOS app
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --add-data 'extension:extension' desktop.py
+          ditto -c -k --sequesterRsrc --keepParent dist/MedicareCorsair.app dist/MedicareCorsair-macOS.zip
+          cd dist
+          shasum -a 256 MedicareCorsair-macOS.zip > MedicareCorsair-macOS.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MedicareCorsair-macOS
+          path: |
+            dist/MedicareCorsair-macOS.zip
+            dist/MedicareCorsair-macOS.zip.sha256
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: MedicareCorsair-*
+          path: release
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/MedicareCorsair.exe
+            release/MedicareCorsair.exe.sha256
+            release/MedicareCorsair-macOS.zip
+            release/MedicareCorsair-macOS.zip.sha256
