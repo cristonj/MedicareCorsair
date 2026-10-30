@@ -1,0 +1,40 @@
+{
+  "edge": {
+    "download": [
+      {"title":"Open Downloads","text":"Press Ctrl + J in Edge.","label":"Downloads","kind":"button"},
+      {"title":"Open the file’s menu","text":"Find MedicareCorsair.exe. Click the three dots beside it.","label":"⋯","kind":"menu"},
+      {"title":"Choose Keep","text":"Choose Keep only for this file from our GitHub release.","label":"Keep","kind":"button"},
+      {"title":"Expand the warning","text":"Click Show more. In some versions, click the small arrow beside Delete instead.","label":"Show more  ▾","kind":"button"},
+      {"title":"Choose Keep anyway","text":"If the warning is about an unfamiliar file and you trust this download, choose Keep anyway. Stop if it reports malware.","label":"Keep anyway","kind":"button"},
+      {"title":"Open the app","text":"Click Open file under MedicareCorsair.exe.","label":"Open file","kind":"button"}
+    ],
+    "install": [
+      {"title":"Turn on Developer mode","text":"On the Extensions page we opened, look near the bottom of the left sidebar. Click the switch beside Developer mode so it turns on.","label":"Developer mode","kind":"toggle"},
+      {"title":"Click Load unpacked","text":"Look at the top of the Extensions page. Click Load unpacked.","label":"Load unpacked","kind":"button"}
+    ],
+    "help":"https://learn.microsoft.com/en-us/microsoft-edge/extensions/getting-started/extension-sideloading"
+  },
+  "chrome": {
+    "download": [
+      {"title":"Open Downloads","text":"Press Ctrl + J in Chrome.","label":"Downloads","kind":"button"},
+      {"title":"Review the download","text":"Find MedicareCorsair.exe and click its warning or menu. If it is marked unfamiliar and you trust this GitHub download, choose the option to keep it. Stop if it reports malware.","label":"MedicareCorsair.exe  ⋯","kind":"menu"},
+      {"title":"Open the app","text":"Once the download finishes, click MedicareCorsair.exe.","label":"MedicareCorsair.exe","kind":"button"}
+    ],
+    "install": [
+      {"title":"Turn on Developer mode","text":"On the Extensions page we opened, look in the top-right corner. Click the switch beside Developer mode so it turns on.","label":"Developer mode","kind":"toggle"},
+      {"title":"Click Load unpacked","text":"A row of buttons appears near the top-left. Click Load unpacked.","label":"Load unpacked","kind":"button"}
+    ],
+    "help":"https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked"
+  },
+  "firefox": {
+    "download": [
+      {"title":"Open Downloads","text":"Click the download arrow in the Firefox toolbar.","label":"Downloads ↓","kind":"button"},
+      {"title":"Review and open the file","text":"Find MedicareCorsair.exe. Review any warning and open only if you trust this GitHub download. Stop if it reports malware.","label":"MedicareCorsair.exe","kind":"button"}
+    ],
+    "install": [
+      {"title":"Choose This Firefox","text":"On the page we opened, click This Firefox in the left sidebar if it is not already selected.","label":"This Firefox","kind":"button"},
+      {"title":"Load the add-on","text":"Click Load Temporary Add-on near the top of the page.","label":"Load Temporary Add-on","kind":"button"}
+    ],
+    "help":"https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/"
+  }
+}

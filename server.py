@@ -105,7 +105,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with closing(data.connect(year)) as db: states = [r[0] for r in db.execute("SELECT state FROM regions ORDER BY state")]
                 return self.send_json({"states": states})
             # Explicit static allowlist: no datasets, source, or directory listings.
-            if parsed.path not in {"/", "/index.html", "/styles.css", "/app.js", "/favicon.svg", "/privacy.html"}: return self.send_error(404)
+            if parsed.path not in {"/", "/index.html", "/styles.css", "/app.js", "/favicon.svg", "/privacy.html", "/setup-guides.json"}: return self.send_error(404)
             return super().do_GET()
         except ValueError as error: return self.send_json({"error": str(error)}, 400)
         except (URLError, TimeoutError, OSError): return self.send_json({"error": "The data provider is unavailable. Please try again shortly; your entries are still here."}, 502)

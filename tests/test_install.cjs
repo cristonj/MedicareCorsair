@@ -1,7 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
 const source=fs.readFileSync('app.js','utf8');
 const start=source.indexOf('function updateInstallChoice(){');
-const end=source.indexOf("$('#install-os').addEventListener",start);
+const end=source.indexOf('let downloadSteps=',start);
 function choose(os,browser){
  const elements={};for(const id of ['install-os','install-browser','install-download','download-help','install-guidance','browser-help','os-help'])elements['#'+id]={value:'',hidden:false,textContent:'',href:''};
  elements['#install-os'].value=os;elements['#install-browser'].value=browser;

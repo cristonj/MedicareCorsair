@@ -70,7 +70,7 @@ jobs:
           npm ci
       - name: Build macOS app
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --collect-all pypdfium2 --add-data 'extension:extension' --add-data 'backend/ocr.cjs:backend' --add-data 'node_modules:node_modules' --add-binary "$(command -v node):runtime" desktop.py
+          python -m PyInstaller --noconfirm --clean --windowed --name MedicareCorsair --collect-all pypdfium2 --add-data 'extension:extension' --add-data 'setup-guides.json:.' --add-data 'backend/ocr.cjs:backend' --add-data 'node_modules:node_modules' --add-binary "$(command -v node):runtime" desktop.py
           ditto -c -k --sequesterRsrc --keepParent dist/MedicareCorsair.app "dist/${{ matrix.asset }}"
           cd dist
           shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"

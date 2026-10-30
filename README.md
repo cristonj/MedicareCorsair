@@ -97,3 +97,5 @@ Additional check:
 ```sh
 node --test tests/test_extension.cjs
 ```
+
+Setup guides show one action at a time, with labeled illustrations and links to official screenshots. Browser labels and layouts may vary by version; Developer mode and extension approval remain user actions.

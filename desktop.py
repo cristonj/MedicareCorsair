@@ -123,21 +123,35 @@ class Launcher:
         self.target = target
         self.show_instructions()
 
-    def show_instructions(self):
+    def show_instructions(self, step=0):
         self.clear()
-        self.title('Add the extension.', f'In {self.browser}, follow these three steps:')
-        paste = 'Press Command+Shift+G, paste the copied path, and confirm.' if sys.platform == 'darwin' else 'Paste the copied path, then confirm.'
-        steps = [('1', 'Select This Firefox if needed.'), ('2', 'Select Load Temporary Add-on.'), ('3', paste)] if self.browser == 'Firefox' else [('1', 'Turn on Developer mode.'), ('2', 'Select Load unpacked.'), ('3', paste)]
-        for number, instruction in steps:
-            row = tk.Frame(self.body, bg='white', padx=15, pady=13, highlightthickness=1, highlightbackground='#dce7de')
-            row.pack(fill='x', pady=4)
-            tk.Label(row, text=number, bg='white', fg=GREEN, font=('Segoe UI', 13, 'bold'), width=3).pack(side='left')
-            tk.Label(row, text=instruction, bg='white', fg=INK, font=('Segoe UI', 11), wraplength=430, justify='left').pack(side='left', fill='x', expand=True)
-        self.button('Done · Open MedicareCorsair  →', self.open_site, True)
-        if self.browser == 'Firefox':
-            tk.Label(self.body, text='Firefox removes this temporary add-on when it closes.', bg=BG, fg=MUTED, font=('Segoe UI', 9), wraplength=500).pack(anchor='w')
-        self.link('Copy folder path again', self.copy_path)
-        self.link('Choose a different browser', self.show_welcome)
+        guide=json.loads((ROOT/'setup-guides.json').read_text(encoding='utf-8-sig'))[self.browser.lower()]
+        steps=list(guide['install'])
+        if sys.platform == 'darwin':
+            steps += [{'title':'Open Go to Folder', 'text':'In the picker, press Command + Shift + G. A small path box opens.', 'label':'Command + Shift + G', 'kind':'button'}, {'title':'Paste the setup path', 'text':'Press Command + V, then Return. The setup path is already copied.', 'label':'Command + V  →  Return', 'kind':'button'}]
+        else:
+            steps += [{'title':'Select the address bar', 'text':'In the picker, press Ctrl + L to select the address bar at the top.', 'label':'Ctrl + L', 'kind':'button'}, {'title':'Paste the setup path', 'text':'Press Ctrl + V, then Enter. The setup path is already copied.', 'label':'Ctrl + V  →  Enter', 'kind':'button'}]
+        steps += [{'title':'Confirm your selection', 'text':'Choose manifest.json and click Open.' if self.browser=='Firefox' else 'Click Select Folder on Windows, or Select on Mac.', 'label':'Open' if self.browser=='Firefox' else 'Select Folder / Select', 'kind':'button'}, {'title':'Check the extension appears', 'text':'Look for MedicareCorsair in the extension list. Then open the website and click Check setup.', 'label':'MedicareCorsair', 'kind':'button'}]
+        item=steps[step]
+        self.title(item['title'], f"Step {step+1} of {len(steps)} · {self.browser}")
+        canvas=tk.Canvas(self.body,width=500,height=100,bg='white',highlightthickness=1,highlightbackground='#c9d7cd')
+        canvas.pack(fill='x',pady=8)
+        canvas.create_rectangle(18,25,365,78,fill='#edf3ee',outline=GREEN,width=2)
+        canvas.create_text(35,51,text=item['label'],anchor='w',fill=INK,font=('Arial',12,'bold'))
+        if item['kind']=='toggle':
+            canvas.create_oval(290,38,340,66,fill=GREEN,outline=GREEN)
+            canvas.create_oval(317,41,338,63,fill='white',outline='white')
+        canvas.create_line(455,50,370,50,fill='#b34d2c',width=4,arrow=tk.LAST)
+        tk.Label(self.body,text='Illustration · browser layouts may vary',bg=BG,fg=MUTED,font=('Arial',9)).pack(anchor='w')
+        tk.Label(self.body,text=item['text'],bg=BG,fg=INK,font=('Arial',12),wraplength=510,justify='left').pack(anchor='w',pady=16)
+        if step<len(steps)-1:
+            self.button('I did this · Next →',lambda:self.show_instructions(step+1),True)
+        else:
+            self.button('Open MedicareCorsair →',self.open_site,True)
+        if step:
+            self.link('← Back',lambda:self.show_instructions(step-1))
+        self.link('Copy setup path again',self.copy_path)
+        self.link('Open official instructions with screenshots',lambda:webbrowser.open(guide['help']))
 
     def copy_path(self):
         try:

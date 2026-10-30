@@ -391,6 +391,30 @@ function updateInstallChoice(){
  $('#browser-help').textContent=browser==='edge'?'Edge: Open Downloads and select the menu beside the file. If it is marked unfamiliar and you trust the source, choose Keep.':browser==='chrome'?'Chrome: Open Downloads and select the warning beside the file. If it is marked unfamiliar and you trust the source, follow the prompt to keep it.':'Firefox: Open Downloads to review any unfamiliar-file warning. Firefox removes the temporary extension when it closes.';
  $('#os-help').textContent=isMac?'Mac: Open the ZIP, then open the app. This build is unsigned and not notarized, so macOS may block it.':'Windows: Open MedicareCorsair.exe after it downloads. Windows may show a warning because the app is unsigned.';
 }
+let downloadSteps=[],downloadStep=0;
+async function startDownloadGuide(){
+ const os=$('#install-os').value,browser=$('#install-browser').value;
+ if(!os||!browser||browser==='safari')return;
+ try{
+  const response=await fetch('/setup-guides.json');if(!response.ok)throw new Error();
+  const guides=await response.json();
+  downloadSteps=os==='windows'?guides[browser].download:[{title:'Open Downloads',text:'In your browser, open Downloads and find MedicareCorsair-macOS.zip (or the Intel version).',label:'Downloads ↓'},{title:'Open the ZIP',text:'Double-click the ZIP to reveal MedicareCorsair.app.',label:'MedicareCorsair-macOS.zip'},{title:'Open MedicareCorsair',text:'Open the app and choose your browser. If macOS blocks it, review Apple’s official instructions before deciding whether to open it.',label:'MedicareCorsair.app'}];
+  $('#download-official-help').href=os==='windows'?(browser==='edge'?'https://learn.microsoft.com/en-us/troubleshoot/microsoft-edge/development/download-failures':browser==='firefox'?'https://support.mozilla.org/kb/where-find-and-manage-downloaded-files-firefox':'https://support.google.com/chrome/answer/6261569'):'https://support.apple.com/en-us/102445';
+  downloadStep=0;renderDownloadGuide();
+ }catch{$('#install-guidance').textContent='Open Help with the download below for instructions.';$('#download-help').open=true;}
+}
+function renderDownloadGuide(){
+ const step=downloadSteps[downloadStep];$('#download-walkthrough').hidden=false;
+ $('#download-step-count').textContent=`DOWNLOAD · ${downloadStep+1} OF ${downloadSteps.length}`;
+ $('#download-step-title').textContent=step.title;$('#download-step-label').textContent=step.label;$('#download-step-text').textContent=step.text;
+ $('#download-guide-back').disabled=downloadStep===0;$('#download-guide-next').hidden=downloadStep===downloadSteps.length-1;
+ $('#download-step-title').focus();
+}
+$('#install-download').addEventListener('click',startDownloadGuide);
+$('#download-guide-next').addEventListener('click',()=>{if(downloadStep<downloadSteps.length-1){downloadStep++;renderDownloadGuide();}});
+$('#download-guide-back').addEventListener('click',()=>{if(downloadStep>0){downloadStep--;renderDownloadGuide();}});
+$('#install-os').addEventListener('change',()=>$('#download-walkthrough').hidden=true);
+$('#install-browser').addEventListener('change',()=>$('#download-walkthrough').hidden=true);
 $('#install-os').addEventListener('change',updateInstallChoice);$('#install-browser').addEventListener('change',updateInstallChoice);
 $('#check-install').addEventListener('click',()=>location.reload());
 document.querySelectorAll('input, textarea').forEach(input=>input.setAttribute('autocomplete','off'));
