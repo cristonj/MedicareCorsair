@@ -10,3 +10,5 @@ function choose(os,browser){
 test('Windows Edge selects the Windows release and Edge guidance',()=>{const x=choose('windows','edge');assert.match(x['#install-download'].href,/MedicareCorsair\.exe$/);assert.match(x['#browser-help'].textContent,/Edge:/);assert.equal(x['#install-download'].hidden,false);});
 test('Mac Firefox selects the Mac release and explains temporary setup',()=>{const x=choose('mac','firefox');assert.match(x['#install-download'].href,/MedicareCorsair-macOS\.zip$/);assert.match(x['#install-guidance'].textContent,/temporary/);});
 test('Safari and missing selections cannot present a download',()=>{assert.equal(choose('mac','safari')['#install-download'].hidden,true);assert.equal(choose('','chrome')['#install-download'].hidden,true);});
+
+test('Intel Mac selects the Intel release',()=>{const x=choose('mac-intel','chrome');assert.match(x['#install-download'].href,/MedicareCorsair-macOS-Intel\.zip$/);});

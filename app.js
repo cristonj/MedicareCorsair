@@ -384,8 +384,8 @@ function updateInstallChoice(){
  const download=$('#install-download');download.hidden=!ready;$('#download-help').hidden=!ready;
  if(!os||!browser){$('#install-guidance').textContent='Choose both options to continue.';return;}
  if(browser==='safari'){$('#install-guidance').textContent='Safari is not supported yet. On a Mac, choose Chrome, Edge, or Firefox.';return;}
- const isMac=os==='mac',name={chrome:'Chrome',edge:'Edge',firefox:'Firefox'}[browser];
- download.href=`https://github.com/cristonj/MedicareCorsair/releases/latest/download/${isMac?'MedicareCorsair-macOS.zip':'MedicareCorsair.exe'}`;
+ const isMac=os==='mac'||os==='mac-intel',name={chrome:'Chrome',edge:'Edge',firefox:'Firefox'}[browser];
+ download.href=`https://github.com/cristonj/MedicareCorsair/releases/latest/download/${os==='mac-intel'?'MedicareCorsair-macOS-Intel.zip':isMac?'MedicareCorsair-macOS.zip':'MedicareCorsair.exe'}`;
  download.textContent=`Download for ${isMac?'Mac':'Windows'} ↓`;
  $('#install-guidance').textContent=`Open the app, choose ${name}, and follow the setup steps.${browser==='firefox'?' Firefox setup is temporary and must be repeated after Firefox closes.':''}`;
  $('#browser-help').textContent=browser==='edge'?'Edge: Open Downloads and select the menu beside the file. If it is marked unfamiliar and you trust the source, choose Keep.':browser==='chrome'?'Chrome: Open Downloads and select the warning beside the file. If it is marked unfamiliar and you trust the source, follow the prompt to keep it.':'Firefox: Open Downloads to review any unfamiliar-file warning. Firefox removes the temporary extension when it closes.';
