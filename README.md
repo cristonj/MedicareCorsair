@@ -19,7 +19,13 @@ A standalone desktop wrapper is not needed for these public data connections. Th
 
 ## Netlify
 
-`netlify.toml` builds a static frontend in `dist/` and publishes only its browser assets. Connect this repository in Netlify and use the settings from the file. This is a frontend preview only: the current Python server runs on localhost, so `/api/` calls, comparison data, PDF imports, and `/extension.zip` will not work on Netlify. The current extension also communicates only with localhost. A usable hosted deployment needs a separately hosted production API with persistent CMS data, a same-origin `/api/*` proxy, a hosted-compatible extension, and an updated privacy notice. Do not expose the current development server directly to the internet.
+`netlify.toml` builds a static frontend in `netlify-public/` and publishes only its browser assets. Connect this repository in Netlify and use the settings from the file. This is a frontend preview only: the current Python server runs on localhost, so `/api/` calls, comparison data, PDF imports, and `/extension.zip` will not work on Netlify. The extension recognizes the Netlify site, but importing its results also needs the API. A usable hosted deployment needs a separately hosted production API with persistent CMS data, a same-origin `/api/*` proxy, and an updated privacy notice. Do not expose the current development server directly to the internet.
+
+## Windows launcher
+
+The single-file Windows launcher opens `https://medicarecorsair.netlify.app/` and guides a one-time unpacked extension setup in Chrome or Edge. It copies the extension to the user's Windows profile and places that folder path on the clipboard; the user turns on Developer mode and chooses Load unpacked. This is a development distribution, not a store installation. The hosted API must be deployed separately for the website to function.
+
+To rebuild on Windows, create the virtual environment, install `pyinstaller==6.22.3` in it, then run `./build-windows.ps1`. The resulting executable is `dist/MedicareCorsair.exe`.
 
 ## What works
 

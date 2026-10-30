@@ -1,7 +1,7 @@
 [build]
   # Publish only browser assets, never the repository, data, or backend source.
-  command = "mkdir -p dist && cp index.html styles.css app.js favicon.svg privacy.html dist/"
-  publish = "dist"
+  command = "mkdir -p netlify-public && cp index.html styles.css app.js favicon.svg privacy.html netlify-public/"
+  publish = "netlify-public"
 
 [[headers]]
   for = "/*"
