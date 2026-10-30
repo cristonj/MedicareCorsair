@@ -230,7 +230,7 @@ function field(label,key,{options,placeholder=''}={}) {
   const wrap=node('div','setup-field'),id='setup-'+key,lab=node('label','',label);lab.htmlFor=id;
   const input=node(options?'select':'input');input.id=id;
   if(options)options.forEach(([value,text])=>input.append(new Option(text,value)));
-  else{input.type='text';input.maxLength=500;input.placeholder=placeholder;}
+  else{input.type='text';input.autocomplete='off';input.maxLength=500;input.placeholder=placeholder;}
   input.value=profile[key]||'';input.addEventListener('input',()=>profile[key]=input.value);
   wrap.append(lab,input);return wrap;
 }
@@ -379,6 +379,20 @@ window.addEventListener('message',event=>{
  if(event.source!==window||event.origin!==location.origin||event.data?.type!=='medicarecorsair-extension-ready')return;
  $('#install-view').hidden=true;$('#app-flow').hidden=false;
 });
+function updateInstallChoice(){
+ const os=$('#install-os').value, browser=$('#install-browser').value, ready=os&&browser&&browser!=='safari';
+ const download=$('#install-download');download.hidden=!ready;$('#download-help').hidden=!ready;
+ if(!os||!browser){$('#install-guidance').textContent='Choose both options to continue.';return;}
+ if(browser==='safari'){$('#install-guidance').textContent='Safari is not supported yet. On a Mac, choose Chrome, Edge, or Firefox.';return;}
+ const isMac=os==='mac',name={chrome:'Chrome',edge:'Edge',firefox:'Firefox'}[browser];
+ download.href=`https://github.com/cristonj/MedicareCorsair/releases/latest/download/${isMac?'MedicareCorsair-macOS.zip':'MedicareCorsair.exe'}`;
+ download.textContent=`Download for ${isMac?'Mac':'Windows'} ↓`;
+ $('#install-guidance').textContent=`Open the app, choose ${name}, and follow the setup steps.${browser==='firefox'?' Firefox setup is temporary and must be repeated after Firefox closes.':''}`;
+ $('#browser-help').textContent=browser==='edge'?'Edge: Open Downloads and select the menu beside the file. If it is marked unfamiliar and you trust the source, choose Keep.':browser==='chrome'?'Chrome: Open Downloads and select the warning beside the file. If it is marked unfamiliar and you trust the source, follow the prompt to keep it.':'Firefox: Open Downloads to review any unfamiliar-file warning. Firefox removes the temporary extension when it closes.';
+ $('#os-help').textContent=isMac?'Mac: Open the ZIP, then open the app. This build is unsigned and not notarized, so macOS may block it.':'Windows: Open MedicareCorsair.exe after it downloads. Windows may show a warning because the app is unsigned.';
+}
+$('#install-os').addEventListener('change',updateInstallChoice);$('#install-browser').addEventListener('change',updateInstallChoice);
 $('#check-install').addEventListener('click',()=>location.reload());
+document.querySelectorAll('input, textarea').forEach(input=>input.setAttribute('autocomplete','off'));
 restore();renderMeds();if(profile.coverage)showWorkspace();else showSetup();refreshStatus();setInterval(refreshStatus,30000);
 window.postMessage({type:'medicarecorsair-ready'},location.origin);
