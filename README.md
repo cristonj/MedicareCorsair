@@ -1,5 +1,7 @@
 # MedicareCorsair
 
+**License:** [MIT](LICENSE) — free to use, modify, and distribute, including commercially, with the copyright and license notice retained.
+
 A local-first Medicare comparison app with a short coverage walkthrough, automatic CMS data, and Medicare results import. Python 3.11+, Node.js 22+, and a browser. No Medicare API key is required for public CMS data or document import.
 
 ## Start
