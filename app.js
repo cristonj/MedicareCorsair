@@ -411,7 +411,7 @@ function renderDownloadGuide(){
  $('#download-guide-back').disabled=downloadStep===0;$('#download-guide-next').hidden=downloadStep===downloadSteps.length-1;
  $('#download-step-title').focus();
 }
-$('#install-download').addEventListener('click',startDownloadGuide);
+$('#install-download').addEventListener('click',async event=>{event.preventDefault();const url=event.currentTarget.href;await startDownloadGuide();location.assign(url);});
 $('#download-guide-next').addEventListener('click',()=>{if(downloadStep<downloadSteps.length-1){downloadStep++;renderDownloadGuide();}});
 $('#download-guide-back').addEventListener('click',()=>{if(downloadStep>0){downloadStep--;renderDownloadGuide();}});
 $('#install-os').addEventListener('change',()=>$('#download-walkthrough').hidden=true);
