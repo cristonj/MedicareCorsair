@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+data/*
+!data/.gitkeep
+.env
+.venv/
+.DS_Store
+Thumbs.db
+test-results/
+node_modules/
+tmp/
+*.traineddata
+*.traineddata.gz
