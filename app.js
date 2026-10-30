@@ -7,7 +7,7 @@ const profile = defaults();
 let currentStatus = null, comparison = null, chosen = null, quotes = {}, compareVersion = 0, searchVersion = 0, sourceIdentity = null;
 let pendingSavedState = '';
 let pendingImport = null;
-let setupStep=0,guideStep=0,guideMode='extension',guidePage=1,queuedCapture=null;
+let setupStep=-1,guideStep=0,guideMode='extension',guidePage=1,queuedCapture=null;
 const node = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
 const external = (text, url, className = '') => { const el = node('a', className, text); el.href = url; el.target = '_blank'; el.rel = 'noopener noreferrer'; return el; };
 async function api(path, body) {
@@ -221,22 +221,33 @@ $('#sort').addEventListener('change', renderPlans); $('#covered-only').addEventL
 $('#refresh').addEventListener('click', async () => { try { await api('/api/sync', {}); toast('Checking CMS for newer data…'); setTimeout(refreshStatus, 1000); } catch (error) { toast(error.message); } });
 $('#reset').addEventListener('click', () => {
   if (!confirm('Clear your medication list, estimates, and saved information from this browser?')) return;
-  compareVersion++; searchVersion++; Object.assign(profile,defaults()); quotes = {}; comparison = null; chosen = null; pendingSavedState = ''; save(); $('#state').value = ''; $('#comparison').hidden = true; $('#results-empty').hidden = false; $('#add-form').hidden = true; $('#drug-results').replaceChildren(); $('#drug-search').value = ''; $('#search-message').textContent = ''; $('#profile-message').textContent = ''; renderMeds();setupStep=0;showSetup();toast('Your information has been cleared.');
+  compareVersion++; searchVersion++; Object.assign(profile,defaults()); quotes = {}; comparison = null; chosen = null; pendingSavedState = ''; clearAccount();save(); $('#state').value = ''; $('#comparison').hidden = true; $('#results-empty').hidden = false; $('#add-form').hidden = true; $('#drug-results').replaceChildren(); $('#drug-search').value = ''; $('#search-message').textContent = ''; $('#profile-message').textContent = ''; renderMeds();setupStep=-1;showSetup();toast('Your information has been cleared.');
 });
 
 $('#sync-summary').addEventListener('click', () => { $('#sources').open = true; });
 // Short intake and assisted capture.
-function field(label,key,{options,placeholder=''}={}) {
+function field(label,key,{options,placeholder='',required=false}={}) {
   const wrap=node('div','setup-field'),id='setup-'+key,lab=node('label','',label);lab.htmlFor=id;
   const input=node(options?'select':'input');input.id=id;
   if(options)options.forEach(([value,text])=>input.append(new Option(text,value)));
   else{input.type='text';input.autocomplete='off';input.maxLength=500;input.placeholder=placeholder;}
-  input.value=profile[key]||'';input.addEventListener('input',()=>profile[key]=input.value);
+  input.required=required;input.value=profile[key]||'';input.addEventListener('input',()=>profile[key]=input.value);
   wrap.append(lab,input);return wrap;
 }
 function showSetup(){
   $('#setup-view').hidden=false;$('#workspace-view').hidden=true;
-  $('#setup-step').textContent=`${setupStep+1} of 4`;$('#setup-back').hidden=setupStep===0;
+  $('#account-view').hidden=true;
+  if(setupStep===-1){
+    $('#setup-step').textContent='Getting started';$('#setup-back').hidden=true;$('#setup-next').hidden=true;
+    $('#setup-title').textContent='Are you logged into Medicare.gov in this browser?';
+    const content=$('#setup-content');content.replaceChildren();
+    for(const [label,yes] of [['Yes, use my Medicare info',true],['No / not sure',false]]){
+      const button=node('button','coverage-choice',label);button.type='button';
+      button.addEventListener('click',()=>{if(yes)showAccount();else{setupStep=0;showSetup();}});content.append(button);
+    }
+    $('#setup-title').focus();return;
+  }
+  $('#setup-step').textContent=`${setupStep+1} of 4`;$('#setup-back').hidden=false;
   const content=$('#setup-content');content.replaceChildren();$('#setup-next').disabled=false;$('#setup-next').hidden=setupStep===0;
   const titles=['What coverage do you have?','What matters most?','Your current plan','Anything you want to keep?'];
   $('#setup-title').textContent=titles[setupStep];$('#setup-next').textContent=setupStep===3?'Start comparing':'Continue';
@@ -251,7 +262,7 @@ function showSetup(){
     content.append(external('Find my current coverage ↗','https://www.medicare.gov/account/login','small-link'));
   }else{
     content.append(field('Preferred pharmacies','pharmacy',{placeholder:'Name or location'}),field('Doctors or hospitals','providers',{placeholder:'Optional'}));
-    content.append(field('Help with Medicare costs','assistance',{options:[['unsure','Not sure'],['none','None'],['medicaid','Medicaid'],['extra_help','Extra Help'],['ssi','Supplemental Security Income'],['msp','Medicare Savings Program']]}));
+    content.append(field('Help with Medicare costs','assistance',{required:true,options:[['','Choose an answer'],['none','None'],['medicaid','Medicaid'],['extra_help','Extra Help'],['ssi','Supplemental Security Income'],['msp','Medicare Savings Program']]}));
     content.append(field('Other employer or retiree coverage?','otherCoverage',{options:[['unsure','Not sure'],['no','No'],['yes','Yes']]}));
     content.append(external('Check help with drug costs ↗','https://www.medicare.gov/basics/costs/help/drug-costs','small-link'));
   }
@@ -271,9 +282,9 @@ function showWorkspace(){
   else {$('#results-empty').querySelector('h3').textContent=advantage?'Bring in your Medicare prices.':'Start with your state.';$('#results-empty').querySelector('p').textContent=advantage?'We’ll guide you through collecting every results page.':'Add medications to check coverage automatically.';if(profile.state)runComparison();}
   if(queuedCapture&&supported&&profile.medications.length){const capture=queuedCapture;queuedCapture=null;readDocuments(capture);}
 }
-$('#setup-back').addEventListener('click',()=>{setupStep=Math.max(0,setupStep-1);showSetup();});
-$('#setup-next').addEventListener('click',()=>{if(setupStep<3){setupStep++;showSetup();}else{save();compareVersion++;comparison=null;$('#comparison').hidden=true;showWorkspace();}});
-$('#edit-setup').addEventListener('click',()=>{setupStep=0;showSetup();});
+$('#setup-back').addEventListener('click',()=>{setupStep=Math.max(-1,setupStep-1);showSetup();});
+$('#setup-next').addEventListener('click',()=>{if(![...$('#setup-content').querySelectorAll('input,select')].every(input=>input.reportValidity()))return;if(setupStep<3){setupStep++;showSetup();}else{save();compareVersion++;comparison=null;$('#comparison').hidden=true;showWorkspace();}});
+$('#edit-setup').addEventListener('click',()=>{setupStep=-1;showSetup();});
 $('#zip').addEventListener('change',()=>{profile.zip=$('#zip').value.trim();changed();});
 $('#pharmacy').addEventListener('change',()=>{profile.pharmacy=$('#pharmacy').value.trim();changed();});
 $('#zip').addEventListener('input',()=>{profile.zip=$('#zip').value.trim();save();});
@@ -315,7 +326,9 @@ function renderGuide(){
 }
 function openCapture(){
  if(!supportedCoverage())return toast('Choose your coverage type first.');
+ if(!$('#zip').reportValidity()||!$('#pharmacy').reportValidity())return;
  if(!profile.state||!profile.medications.length)return toast('Choose your state and add your medications first.');
+ if(!profile.assistance||profile.assistance==='unsure'){toast('Choose whether you get help with Medicare costs.');setupStep=3;showSetup();return;}
  guideStep=0;$('#import-review').hidden=true;$('#import-message').textContent='';$('#capture-guide').hidden=false;renderGuide();$('#import-dialog').showModal();
 }
 $('#open-import').addEventListener('click',openCapture);
@@ -369,6 +382,58 @@ $('#import-review').addEventListener('submit',e=>{
  save();$('#comparison').hidden=false;$('#results-empty').hidden=true;$('#sort').value='quote';renderPlans();$('#import-dialog').close();toast(`${pendingImport.quotes.length} annual estimates imported.`);
 });
 function flushCapture(){if(queuedCapture&&supportedCoverage()&&profile.state&&profile.medications.length&&currentStatus?.source){const capture=queuedCapture;queuedCapture=null;readDocuments({documents:capture.documents});}}
+// Account comparisons use Medicare's inputs, not a second local questionnaire.
+let accountRequest=null;
+function showAccount(){
+ $('#setup-view').hidden=true;$('#workspace-view').hidden=true;$('#account-view').hidden=false;
+ $('#account-title').focus();
+ $('#account-start').click();
+}
+function clearAccount(){
+ if(accountRequest)window.postMessage({type:'medicarecorsair-account-cancel',requestId:accountRequest},location.origin);
+ accountRequest=null;$('#account-start').disabled=false;$('#account-results').hidden=true;$('#account-plans').replaceChildren();$('#account-summary').replaceChildren();$('#account-warnings').textContent='';$('#account-confirm').checked=false;
+}
+$('#account-guest').addEventListener('click',()=>{clearAccount();setupStep=0;showSetup();});
+$('#account-start').addEventListener('click',async()=>{
+ clearAccount();accountRequest=crypto.randomUUID();const requestId=accountRequest;
+ $('#account-status').textContent='Opening Medicare…';$('#account-start').disabled=true;
+ try{
+  const status=await api('/api/status');if(accountRequest!==requestId)return;
+  window.postMessage({type:'medicarecorsair-account-start',requestId,year:status.enrollment.year},location.origin);
+  // Older installed extensions do not support automatic collection yet.
+  setTimeout(()=>{if(accountRequest===requestId&&$('#account-status').textContent==='Opening Medicare…'){
+   $('#account-status').textContent='Update the extension using the desktop app, then try again.';$('#account-start').disabled=false;
+  }},8000);
+ }catch(error){if(accountRequest===requestId){$('#account-status').textContent=error.message;$('#account-start').disabled=false;}}
+});
+$('#account-confirm').addEventListener('change',()=>{$('#account-plans').hidden=!$('#account-confirm').checked;});
+window.addEventListener('message',async event=>{
+ if(event.source!==window||event.origin!==location.origin||!accountRequest||event.data?.requestId!==accountRequest)return;
+ const message=event.data;
+ if(message.type==='medicarecorsair-account-status'){$('#account-status').textContent=message.text;$('#account-start').disabled=false;return;}
+ if(message.type!=='medicarecorsair-account-capture'||!Array.isArray(message.capture?.documents))return;
+ const requestId=accountRequest;$('#account-status').textContent='Reading your Medicare prices…';
+ try{
+  const result=await api('/api/import-quotes',{documents:message.capture.documents});if(accountRequest!==requestId)return;
+  const plans=[...result.quotes].sort((a,b)=>a.annual_total-b.annual_total||a.id.localeCompare(b.id));
+  const types=new Set(plans.map(q=>q.id.startsWith('S')?'Part D':'Medicare Advantage'));
+  if(types.size!==1)throw new Error('Choose one plan type in Medicare, then collect again.');
+  $('#account-status').textContent=`${plans.length} ${[...types][0]} plans · ${result.year} coverage`;
+  $('#account-warnings').textContent=result.warnings.join(' ');
+  const summary=$('#account-summary');summary.replaceChildren(node('h2','','Check your Medicare search first'));
+  const list=$('#account-plans');list.replaceChildren();list.hidden=true;$('#account-confirm').checked=false;
+  const tied=plans.filter(q=>q.annual_total===plans[0].annual_total).length;
+  list.append(node('h2','',`${tied>1?tied+' plans tied for lowest estimate':'Lowest drug + premium estimate'}: ${money(plans[0].annual_total)}/year`));
+  if(types.has('Medicare Advantage'))list.append(node('p','hint','Medical costs and doctor networks also matter. Check them before choosing.'));
+  plans.forEach(q=>{
+   const card=node('article','plan');card.append(node('h3','',q.name),node('p','plan-id',q.id),node('strong','',`${money(q.annual_total)}/year · drugs + premiums`),node('p','hint',`${money(q.monthly_premium)}/month premium`));
+   if(!q.id.startsWith('S'))card.append(node('p','hint',`In-network medical limit: ${Number.isFinite(q.medical_max)?money(q.medical_max):'Check plan'}`));
+   list.append(card);
+  });
+  $('#account-results').hidden=false;
+ }catch(error){if(accountRequest===requestId)$('#account-status').textContent=error.message;}
+ finally{if(accountRequest===requestId)$('#account-start').disabled=false;}
+});
 window.addEventListener('message',event=>{
  if(event.source!==window||event.origin!==location.origin||event.data?.type!=='medicarecorsair-capture')return;
  const capture=event.data.capture;if(!capture||!Array.isArray(capture.documents))return;

@@ -35,6 +35,8 @@ The website requires the extension before displaying the form. It detects the ex
 
 ## What works
 
+- First question: “Are you logged into Medicare.gov in this browser?” Yes skips the local questionnaire and opens Plan Finder in the same browser, sharing its existing Medicare session. Confirm saved drugs and pharmacies on Medicare; the extension watches that specific tab, collects all result pages, and returns to the originating dashboard. An expired session or missing Medicare answers must be completed there. The app never handles a password or changes the saved Medicare profile. Review the search inputs before revealing ranked estimates. Install the updated extension (version 0.4.0 or newer) for this path. Automated account collection has synthetic regression coverage; a real signed-in account has not been tested.
+- No / not sure keeps the guest questionnaire. ZIP, pharmacies, and a definite assistance answer are required before the price-import walkthrough. Exact medications, quantities, and days supply are entered locally. Full automatic filling of the guest Medicare form is not implemented yet; the guest walkthrough still requires entering those details on Medicare.
 - Enrollment-aware coverage year: annual enrollment October 15–December 7 selects the following benefit year. That year remains selected through December 31. Other times use the current benefit year, with an eligibility notice rather than a claim that annual enrollment is open.
 - Automatic CMS catalog discovery, benefit-year validation, partial ZIP downloads, and atomic SQLite snapshot replacement. Never substitutes next/previous-year plans if the desired year is unavailable.
 - State/territory to PDP region lookup, stand-alone plan premiums and deductibles.
